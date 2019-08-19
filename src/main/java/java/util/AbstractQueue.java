@@ -110,6 +110,7 @@ public abstract class AbstractQueue<E>
      * @throws NoSuchElementException if this queue is empty
      */
     public E remove() {
+        // 当队列顶部元素为null时候，poll会返回null，但是不会throw exception
         E x = poll();
         if (x != null)
             return x;
@@ -144,6 +145,7 @@ public abstract class AbstractQueue<E>
      * returns <tt>null</tt>.
      */
     public void clear() {
+        // 精辟，poll会移除头部元素，而且不会throw exception
         while (poll() != null)
             ;
     }
@@ -183,6 +185,7 @@ public abstract class AbstractQueue<E>
         if (c == this)
             throw new IllegalArgumentException();
         boolean modified = false;
+        // collection实现了Iterable接口
         for (E e : c)
             if (add(e))
                 modified = true;

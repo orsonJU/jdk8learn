@@ -56,7 +56,7 @@ import sun.reflect.annotation.AnnotationType;
  * @author  unascribed
  * @since   JDK1.0
  */
-public final class System {
+public final class cSystem {
 
     /* register the natives via the static initializer.
      *

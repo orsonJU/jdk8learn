@@ -566,6 +566,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
      */
     protected void removeRange(int fromIndex, int toIndex) {
         ListIterator<E> it = listIterator(fromIndex);
+        // 迭代from到to之间到元素，并删除
         for (int i=0, n=toIndex-fromIndex; i<n; i++) {
             it.next();
             it.remove();
@@ -598,9 +599,11 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
      * does not wish to provide fail-fast iterators, this field may be
      * ignored.
      */
+    // 因为AbstractList不是线程安全的，所以在迭代器读操作的时候，不允许数据发生改变
     protected transient int modCount = 0;
 
     private void rangeCheckForAdd(int index) {
+        // 检查下标越界
         if (index < 0 || index > size())
             throw new IndexOutOfBoundsException(outOfBoundsMsg(index));
     }

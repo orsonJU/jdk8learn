@@ -335,6 +335,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     static final int hash(Object key) {
         int h;
+        // hashmap支持存放key为null，默认存放在第0个位置上
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 
@@ -412,6 +413,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * rehash).  This field is used to make iterators on Collection-views of
      * the HashMap fail-fast.  (See ConcurrentModificationException).
      */
+    // 万一超出了int的最大值怎么办？
     transient int modCount;
 
     /**
@@ -565,14 +567,19 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     final Node<K,V> getNode(int hash, Object key) {
         Node<K,V>[] tab; Node<K,V> first, e; int n; K k;
+        // first 就是当前key的hash对应的bin的第一个元素
         if ((tab = table) != null && (n = tab.length) > 0 &&
             (first = tab[(n - 1) & hash]) != null) {
+            // 如果first有值
             if (first.hash == hash && // always check first node
                 ((k = first.key) == key || (key != null && key.equals(k))))
+                // 如果bin中的第一个元素就是要寻找的元素，则返回
                 return first;
             if ((e = first.next) != null) {
                 if (first instanceof TreeNode)
+                    // 如果第一个元素不是要找的元素，并且bin中的是一个红黑树，则进行树查找
                     return ((TreeNode<K,V>)first).getTreeNode(hash, key);
+                // 如果不是红黑树，则进行链表查找
                 do {
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))
@@ -608,6 +615,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      *         previously associated <tt>null</tt> with <tt>key</tt>.)
      */
     public V put(K key, V value) {
+        // @main method
         return putVal(hash(key), key, value, false, true);
     }
 
@@ -625,17 +633,23 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
         if ((tab = table) == null || (n = tab.length) == 0)
+            // 扩容并且把旧元素复制到新的table中，n是新table的长度
             n = (tab = resize()).length;
         if ((p = tab[i = (n - 1) & hash]) == null)
+            // 如果当前key的hash对应的bin没有元素，则放入到table中
             tab[i] = newNode(hash, key, value, null);
         else {
+            // 如果当前key的hash对应的bin已经存在元素，p是当前bin中存在的第一个元素
             Node<K,V> e; K k;
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
+                // 如果hash和key都相同，则替换当前bin中的元素
                 e = p;
             else if (p instanceof TreeNode)
+                // 如果当前bin中的元素是红黑树的节点
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
+                // 如果bin中的第一个元素不是null，并且key不一样，则进行链表遍历
                 for (int binCount = 0; ; ++binCount) {
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
@@ -649,6 +663,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     p = e;
                 }
             }
+            // 当相同key时候，仅仅替换元素当value，所以不调用下面的++size
             if (e != null) { // existing mapping for key
                 V oldValue = e.value;
                 if (!onlyIfAbsent || oldValue == null)
@@ -658,8 +673,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
         ++modCount;
+        // 每次添加元素后，都对大小进行判定
         if (++size > threshold)
             resize();
+        // 留下callback切点
         afterNodeInsertion(evict);
         return null;
     }
@@ -673,8 +690,14 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      *
      * @return the table
      */
+    /**
+     * 初始化或者把现在的table扩容2倍
+     *
+     * @return
+     */
     final Node<K,V>[] resize() {
         Node<K,V>[] oldTab = table;
+        // 获取当前的 capacity, 阀值 threshold
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
         int newCap, newThr = 0;
@@ -699,25 +722,31 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                       (int)ft : Integer.MAX_VALUE);
         }
         threshold = newThr;
+        // 创建新的table，从这里可以看到hashmap并不是线程安全的
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
         table = newTab;
+
+        // 把旧table中的元素复制到新的table中
         if (oldTab != null) {
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
                     oldTab[j] = null;
                     if (e.next == null)
+                        // 如果bin中只有一个元素
                         newTab[e.hash & (newCap - 1)] = e;
                     else if (e instanceof TreeNode)
+                        // 如果bin中已经是红黑树
                         ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
                     else { // preserve order
+                        // 如果bin中是链表
                         Node<K,V> loHead = null, loTail = null;
                         Node<K,V> hiHead = null, hiTail = null;
                         Node<K,V> next;
                         do {
                             next = e.next;
-                            if ((e.hash & oldCap) == 0) {
+                            if ((e.hash & oldCap) == 0) { // MIST
                                 if (loTail == null)
                                     loHead = e;
                                 else

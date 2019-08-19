@@ -94,6 +94,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * heap and each descendant d of n, n <= d.  The element with the
      * lowest value is in queue[0], assuming the queue is nonempty.
      */
+    // Queue都是维护一个数组，数据结构是数组，想起顺序表都是使用数组这个数据结构
     transient Object[] queue; // non-private to simplify nested class access
 
     /**
@@ -291,6 +292,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     private void grow(int minCapacity) {
         int oldCapacity = queue.length;
         // Double size if small; else grow by 50%
+        // 如果数组size少于64，则双倍的oldCapacity+2，否则就是1.5个oldCapacity
         int newCapacity = oldCapacity + ((oldCapacity < 64) ?
                                          (oldCapacity + 2) :
                                          (oldCapacity >> 1));
@@ -335,18 +337,23 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             throw new NullPointerException();
         modCount++;
         int i = size;
+        // size是元素的个数，queue.length是数组的长度，一个10长度的数组，可能只有size=2的元素
+        // 如果当前数组已经满了，则进行扩容，需要Arrays.copyOf
         if (i >= queue.length)
             grow(i + 1);
         size = i + 1;
+        // 这个做了一个优化，当i==0，就是数组第一次添加元素的时候
         if (i == 0)
             queue[0] = e;
         else
+            // 对大/小顶堆进行调整
             siftUp(i, e);
         return true;
     }
 
     @SuppressWarnings("unchecked")
     public E peek() {
+        // 这里也对size==0对时候做了优化，避免queue[0]强制转型对时候抛出ClassCastException
         return (size == 0) ? null : (E) queue[0];
     }
 
@@ -356,6 +363,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
                 if (o.equals(queue[i]))
                     return i;
         }
+        // 这里和ArrayList对不同之处在于Queue中不允许放入null元素，请参考offer方法
         return -1;
     }
 
@@ -370,6 +378,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
      * @param o element to be removed from this queue, if present
      * @return {@code true} if this queue changed as a result of the call
      */
+    // 这里重写的是AbstractCollection的remove方法，不是Queue的remove方法，前者返回boolean，后者是顶部元素
     public boolean remove(Object o) {
         int i = indexOf(o);
         if (i == -1)
@@ -618,6 +627,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
         else {
             E moved = (E) queue[s];
             queue[s] = null;
+            // 调整大/小顶堆，把null放到叶子节点
             siftDown(i, moved);
             if (queue[i] == moved) {
                 siftUp(i, moved);
@@ -650,6 +660,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
     @SuppressWarnings("unchecked")
     private void siftUpComparable(int k, E x) {
         Comparable<? super E> key = (Comparable<? super E>) x;
+        // 典型的堆排序算法，这里假设前面k个元素已经排好序了，只需要比较最新添加的元素和它的父亲
         while (k > 0) {
             int parent = (k - 1) >>> 1;
             Object e = queue[parent];

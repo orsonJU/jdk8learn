@@ -135,6 +135,7 @@ public final class String
      * unnecessary since Strings are immutable.
      */
     public String() {
+        // ""代表一个字符串对象，字符串对象的成员变量value是私有的，所以在String外无法调用
         this.value = "".value;
     }
 
@@ -163,6 +164,7 @@ public final class String
      *         The initial value of the string
      */
     public String(char value[]) {
+        // Arrays底层调用的是System.arraycopy方法实现复制
         this.value = Arrays.copyOf(value, value.length);
     }
 
@@ -654,6 +656,7 @@ public final class String
      *             string.
      */
     public char charAt(int index) {
+        // 数组下标的参数检查方式
         if ((index < 0) || (index >= value.length)) {
             throw new StringIndexOutOfBoundsException(index);
         }
@@ -915,6 +918,7 @@ public final class String
     public byte[] getBytes(String charsetName)
             throws UnsupportedEncodingException {
         if (charsetName == null) throw new NullPointerException();
+        // 可以从Charset类中获取支持的charset
         return StringCoding.encode(charsetName, value, 0, value.length);
     }
 
@@ -1011,6 +1015,7 @@ public final class String
      * @since  1.4
      */
     public boolean contentEquals(StringBuffer sb) {
+        // StrinbBuffer也实现了CharSequence
         return contentEquals((CharSequence)sb);
     }
 
@@ -1050,6 +1055,7 @@ public final class String
         if (cs instanceof AbstractStringBuilder) {
             if (cs instanceof StringBuffer) {
                 synchronized(cs) {
+                    // MIST
                    return nonSyncContentEquals((AbstractStringBuilder)cs);
                 }
             } else {
@@ -1162,10 +1168,12 @@ public final class String
             char c1 = v1[k];
             char c2 = v2[k];
             if (c1 != c2) {
+                // 利用char可以转换成对应的int值原理
                 return c1 - c2;
             }
             k++;
         }
+        // 如果字符数组的内容一致，则比较长度
         return len1 - len2;
     }
 
@@ -1236,6 +1244,7 @@ public final class String
      * @since   1.2
      */
     public int compareToIgnoreCase(String str) {
+        // 一想到比较，就应该使用comparator，这里实现了一个内部类的比较器
         return CASE_INSENSITIVE_ORDER.compare(this, str);
     }
 
@@ -1356,6 +1365,7 @@ public final class String
         while (len-- > 0) {
             char c1 = ta[to++];
             char c2 = pa[po++];
+            // 先判断两个char是否相等
             if (c1 == c2) {
                 continue;
             }
@@ -1364,6 +1374,7 @@ public final class String
                 // try converting both characters to uppercase.
                 // If the results match, then the comparison scan should
                 // continue.
+                // 当两个char的判定不相等的时候，判定两个char的大写是否一样
                 char u1 = Character.toUpperCase(c1);
                 char u2 = Character.toUpperCase(c2);
                 if (u1 == u2) {
@@ -1446,6 +1457,7 @@ public final class String
      *          as determined by the {@link #equals(Object)} method.
      */
     public boolean endsWith(String suffix) {
+        // endsWith使用的是startsWith的方法，为了不重复造轮子
         return startsWith(suffix, value.length - suffix.value.length);
     }
 
@@ -1551,6 +1563,7 @@ public final class String
             return -1;
         }
 
+        // MIST
         if (ch < Character.MIN_SUPPLEMENTARY_CODE_POINT) {
             // handle most cases here (ch is a BMP code point or a
             // negative value (invalid code point))
@@ -1572,6 +1585,7 @@ public final class String
     private int indexOfSupplementary(int ch, int fromIndex) {
         if (Character.isValidCodePoint(ch)) {
             final char[] value = this.value;
+            // MIST
             final char hi = Character.highSurrogate(ch);
             final char lo = Character.lowSurrogate(ch);
             final int max = value.length - 1;
@@ -1957,6 +1971,7 @@ public final class String
      */
     public String substring(int beginIndex, int endIndex) {
         if (beginIndex < 0) {
+            // 因为数组下标越界的值不一样，所以beginIndex和endIndex分开来检查
             throw new StringIndexOutOfBoundsException(beginIndex);
         }
         if (endIndex > value.length) {
@@ -1966,6 +1981,7 @@ public final class String
         if (subLen < 0) {
             throw new StringIndexOutOfBoundsException(subLen);
         }
+        // 这个做了优化，当下标从0开始，并且获取的长度就是现在字符串的长度，则直接返回当前的字符串
         return ((beginIndex == 0) && (endIndex == value.length)) ? this
                 : new String(value, beginIndex, subLen);
     }
@@ -2064,6 +2080,7 @@ public final class String
      *          occurrence of {@code oldChar} with {@code newChar}.
      */
     public String replace(char oldChar, char newChar) {
+        // 这里做了一个优化，如果replace前后的字符一样，则什么都不做
         if (oldChar != newChar) {
             int len = value.length;
             int i = -1;
@@ -2075,6 +2092,7 @@ public final class String
                 }
             }
             if (i < len) {
+                // replace也要使用一个全新的数组，可以使用System.arraycopy(value, 0, buf, 0, i - 1)代替
                 char buf[] = new char[len];
                 for (int j = 0; j < i; j++) {
                     buf[j] = val[j];
@@ -2875,6 +2893,7 @@ public final class String
         while ((st < len) && (val[len - 1] <= ' ')) {
             len--;
         }
+        // 利用substring方法来生成新的字符串
         return ((st > 0) || (len < value.length)) ? substring(st, len) : this;
     }
 
@@ -2896,6 +2915,7 @@ public final class String
      */
     public char[] toCharArray() {
         // Cannot use Arrays.copyOf because of class initialization order issues
+        // 因为Arrays也依赖String实例类
         char result[] = new char[value.length];
         System.arraycopy(value, 0, result, 0, value.length);
         return result;
@@ -2937,6 +2957,7 @@ public final class String
      * @since  1.5
      */
     public static String format(String format, Object... args) {
+        // Formatter是一个恐怖的东西
         return new Formatter().format(format, args).toString();
     }
 
@@ -2991,6 +3012,7 @@ public final class String
      * @see     java.lang.Object#toString()
      */
     public static String valueOf(Object obj) {
+        // 调用的是每个对象的toString方法
         return (obj == null) ? "null" : obj.toString();
     }
 

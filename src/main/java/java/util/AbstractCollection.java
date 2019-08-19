@@ -96,6 +96,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
      * @throws NullPointerException {@inheritDoc}
      */
     public boolean contains(Object o) {
+        // 迭代器模式，保证迭代的过程中元素不会被添加/修改/删除
         Iterator<E> it = iterator();
         if (o==null) {
             while (it.hasNext())
@@ -103,6 +104,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
                     return true;
         } else {
             while (it.hasNext())
+                // 判断是否存在是通过equals来判定的
                 if (o.equals(it.next()))
                     return true;
         }
@@ -137,9 +139,11 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         Iterator<E> it = iterator();
         for (int i = 0; i < r.length; i++) {
             if (! it.hasNext()) // fewer elements than expected
+                // 因为数组是创建就必须定义大小，如果一个collection的size是10，但是只有2个元素的话，则只返回包含2个元素的数组
                 return Arrays.copyOf(r, i);
             r[i] = it.next();
         }
+        // MIST
         return it.hasNext() ? finishToArray(r, it) : r;
     }
 
@@ -279,6 +283,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
      * @throws NullPointerException          {@inheritDoc}
      */
     public boolean remove(Object o) {
+        // 集合类的模版式的代码，因为判定null和判定相同equals不一样
         Iterator<E> it = iterator();
         if (o==null) {
             while (it.hasNext()) {

@@ -142,6 +142,9 @@ package java.util;
  * @param <E> the type of elements held in this collection
  */
 public interface Queue<E> extends Collection<E> {
+
+
+    // add和offer作用相同，其中offer是restricted mode？
     /**
      * Inserts the specified element into this queue if it is possible to do so
      * immediately without violating capacity restrictions, returning
@@ -180,6 +183,7 @@ public interface Queue<E> extends Collection<E> {
      */
     boolean offer(E e);
 
+    // remove和poll的作用相同，remove会throw exception
     /**
      * Retrieves and removes the head of this queue.  This method differs
      * from {@link #poll poll} only in that it throws an exception if this
@@ -198,6 +202,9 @@ public interface Queue<E> extends Collection<E> {
      */
     E poll();
 
+
+
+    // element和peek的作用相同，element会throw exception
     /**
      * Retrieves, but does not remove, the head of this queue.  This method
      * differs from {@link #peek peek} only in that it throws an exception

@@ -68,6 +68,7 @@ import java.util.stream.StreamSupport;
  * @author John Rose
  * @since  1.2
  */
+// 处理数组的工具类
 public class Arrays {
 
     /**
@@ -3329,7 +3330,9 @@ public class Arrays {
      * @since 1.6
      */
     public static char[] copyOf(char[] original, int newLength) {
+        // 创建一个大小相同的空间
         char[] copy = new char[newLength];
+        // 从源数组的下标0开始，复制到目标数组的下标0开始，一共复制length长度
         System.arraycopy(original, 0, copy, 0,
                          Math.min(original.length, newLength));
         return copy;
@@ -3661,6 +3664,7 @@ public class Arrays {
         int newLength = to - from;
         if (newLength < 0)
             throw new IllegalArgumentException(from + " > " + to);
+        // 定义复制的子字符数组的长度
         char[] copy = new char[newLength];
         System.arraycopy(original, from, copy, 0,
                          Math.min(original.length - from, newLength));
