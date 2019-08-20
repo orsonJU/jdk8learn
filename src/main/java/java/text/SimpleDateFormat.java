@@ -723,6 +723,7 @@ public class SimpleDateFormat extends DateFormat {
      * @exception IllegalArgumentException if the given pattern is invalid
      */
     private char[] compile(String pattern) {
+        // 解析日期格式，如解析YYYY-MM-DD hh:mm:ss
         int length = pattern.length();
         boolean inQuote = false;
         StringBuilder compiledCode = new StringBuilder(length * 2);
@@ -940,6 +941,7 @@ public class SimpleDateFormat extends DateFormat {
     private StringBuffer format(Date date, StringBuffer toAppendTo,
                                 FieldDelegate delegate) {
         // Convert input date to time field list
+        // 把输入的Date对象设置到Calendar中
         calendar.setTime(date);
 
         boolean useDateFormatSymbols = useDateFormatSymbols();

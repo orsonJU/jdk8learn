@@ -50,6 +50,9 @@ import java.lang.annotation.Native;
  * @since JDK1.0
  */
 public final class Integer extends Number implements Comparable<Integer> {
+
+
+    // Integer取值范围
     /**
      * A constant holding the minimum value an {@code int} can
      * have, -2<sup>31</sup>.
@@ -128,7 +131,9 @@ public final class Integer extends Number implements Comparable<Integer> {
      * @see     java.lang.Character#MIN_RADIX
      */
     public static String toString(int i, int radix) {
+        // radix是基数，这里是转换的进制
         if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX)
+            // 使用十进制
             radix = 10;
 
         /* Use the faster version */
@@ -395,6 +400,7 @@ public final class Integer extends Number implements Comparable<Integer> {
      * @return  a string representation of the argument in base&nbsp;10.
      */
     public static String toString(int i) {
+        // 优化，如果是最少值，则直接返回
         if (i == Integer.MIN_VALUE)
             return "-2147483648";
         int size = (i < 0) ? stringSize(-i) + 1 : stringSize(i);
@@ -435,6 +441,7 @@ public final class Integer extends Number implements Comparable<Integer> {
         int charPos = index;
         char sign = 0;
 
+        // 如果i是复制，则添加符号，然后变正数
         if (i < 0) {
             sign = '-';
             i = -i;
