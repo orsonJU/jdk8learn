@@ -2076,7 +2076,7 @@ public abstract class AbstractQueuedSynchronizer
                     break;
                 }
                 if (nanosTimeout >= spinForTimeoutThreshold)
-                    // 这里调用的是Thread.park方法
+                    // 这里调用的是Thread.park方法，让当前线程等待
                     LockSupport.parkNanos(this, nanosTimeout);
                 if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
                     break;

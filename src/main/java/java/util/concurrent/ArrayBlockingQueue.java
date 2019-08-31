@@ -91,6 +91,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
     private static final long serialVersionUID = -817911632652898426L;
 
     /** The queued items */
+    // 底层使用数组来存放元素
     final Object[] items;
 
     /** items index for next take, poll, peek or remove */
@@ -425,6 +426,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
         }
     }
 
+    // 相比于没有参数的poll，带参数的poll会阻塞
     public E poll(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
         final ReentrantLock lock = this.lock;
@@ -433,7 +435,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             while (count == 0) {
                 if (nanos <= 0)
                     return null;
-                // 返回的是剩余的等待时间
+                // 返回的是剩余的等待时间，调用的是condition的方法
                 nanos = notEmpty.awaitNanos(nanos);
             }
             return dequeue();

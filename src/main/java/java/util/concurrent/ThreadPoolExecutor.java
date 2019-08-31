@@ -897,6 +897,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      */
     private boolean addWorker(Runnable firstTask, boolean core) {
         retry:
+        // 这里使用自旋
         for (;;) {
             int c = ctl.get();
             int rs = runStateOf(c);
@@ -908,12 +909,16 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                    ! workQueue.isEmpty()))
                 return false;
 
+            // 自旋
             for (;;) {
                 int wc = workerCountOf(c);
+                // 超出核心worker数量 或者 超出最大线程数
                 if (wc >= CAPACITY ||
                     wc >= (core ? corePoolSize : maximumPoolSize))
                     return false;
+                // 增加worker线程
                 if (compareAndIncrementWorkerCount(c))
+                    // 增加成功则跳出
                     break retry;
                 c = ctl.get();  // Re-read ctl
                 if (runStateOf(c) != rs)
@@ -929,6 +934,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             w = new Worker(firstTask);
             final Thread t = w.thread;
             if (t != null) {
+                // 这里的重入锁是为了修改largestPoolSize？ 貌似是为了往workers里面添加worker线程
                 final ReentrantLock mainLock = this.mainLock;
                 mainLock.lock();
                 try {
@@ -951,11 +957,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     mainLock.unlock();
                 }
                 if (workerAdded) {
+                    // 开始worker线程
                     t.start();
                     workerStarted = true;
                 }
             }
         } finally {
+            // 添加worker线程失败
             if (! workerStarted)
                 addWorkerFailed(w);
         }
@@ -974,6 +982,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         mainLock.lock();
         try {
             if (w != null)
+                // 移除启动失败的worker线程
                 workers.remove(w);
             decrementWorkerCount();
             tryTerminate();
@@ -1002,15 +1011,19 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
+            // 把worker执行的任务数量相加
             completedTaskCount += w.completedTasks;
+            // 移除worker
             workers.remove(w);
         } finally {
             mainLock.unlock();
         }
 
+        // MIST 这里是检查pool是否被shutdown？所以尝试关闭线程池？
         tryTerminate();
 
         int c = ctl.get();
+        // less than stop，就是running
         if (runStateLessThan(c, STOP)) {
             if (!completedAbruptly) {
                 int min = allowCoreThreadTimeOut ? 0 : corePoolSize;
@@ -1019,6 +1032,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 if (workerCountOf(c) >= min)
                     return; // replacement not needed
             }
+            // 增加一个非核心worker线程
             addWorker(null, false);
         }
     }
@@ -1066,6 +1080,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
 
             try {
+                // workQueue是blocking queue，这里会阻塞等待任务，这里就牵扯我们当初设计线程的最大空余等待时间
+                // ArrayBlockingQueue底层使用的是LockSupport.park方法来让线程进行等待，所以这里worker thread会被挂起进行等待
                 Runnable r = timed ?
                     workQueue.poll(keepAliveTime, TimeUnit.NANOSECONDS) :
                     workQueue.take();
@@ -1121,14 +1137,18 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *
      * @param w the worker
      */
+    // worker的执行逻辑
     final void runWorker(Worker w) {
         Thread wt = Thread.currentThread();
+        // 启动worker的时候默认会有一个first task
         Runnable task = w.firstTask;
         w.firstTask = null;
         w.unlock(); // allow interrupts
         boolean completedAbruptly = true;
         try {
+            // 如果first task是null，则从work queue中获取task
             while (task != null || (task = getTask()) != null) {
+                // MIST，为什么要上锁
                 w.lock();
                 // If pool is stopping, ensure thread is interrupted;
                 // if not, ensure thread is not interrupted.  This
@@ -1138,11 +1158,15 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                      (Thread.interrupted() &&
                       runStateAtLeast(ctl.get(), STOP))) &&
                     !wt.isInterrupted())
+                    // 中断当前的worker thread，不是worker里面的runnable task
                     wt.interrupt();
                 try {
+                    // 钩子函数
                     beforeExecute(wt, task);
                     Throwable thrown = null;
                     try {
+                        // 执行worker持有的runnable task
+                        // 这里是直接调用run方法，所以不会开启新的线程，当前worker会等待run方法执行完毕
                         task.run();
                     } catch (RuntimeException x) {
                         thrown = x; throw x;
@@ -1151,16 +1175,19 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                     } catch (Throwable x) {
                         thrown = x; throw new Error(x);
                     } finally {
+                        // 钩子函数
                         afterExecute(task, thrown);
                     }
                 } finally {
                     task = null;
+                    // 因为worker thread会等待task执行结束
                     w.completedTasks++;
                     w.unlock();
                 }
             }
             completedAbruptly = false;
         } finally {
+            // 当worker没有task的时候
             processWorkerExit(w, completedAbruptly);
         }
     }
@@ -1364,13 +1391,19 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 return;
             c = ctl.get();
         }
+        // 如果增加woker线程失败，则把任务放入到队列中
         if (isRunning(c) && workQueue.offer(command)) {
             int recheck = ctl.get();
+            // 如果线程池不是running，则移除任务
             if (! isRunning(recheck) && remove(command))
+                // 调用reject的策略
                 reject(command);
+
+            // 经过上面的判定，这里可以知道线程池在工作，但是没有worker线程
             else if (workerCountOf(recheck) == 0)
                 addWorker(null, false);
         }
+        // 线程池没有工作，调用reject策略
         else if (!addWorker(command, false))
             reject(command);
     }
