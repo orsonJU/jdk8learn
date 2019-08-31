@@ -48,6 +48,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
     /**
      * The value is used for character storage.
      */
+    // 要清楚知道字符串底层就一定是一个数组
     char[] value;
 
     /**
@@ -76,6 +77,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
      */
     @Override
     public int length() {
+        // length和capacity不同在于一个是元素个数，另外一个是容量
         return count;
     }
 
@@ -121,6 +123,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
     private void ensureCapacityInternal(int minimumCapacity) {
         // overflow-conscious code
         if (minimumCapacity - value.length > 0) {
+            // 发现java底层大量使用Arrays.copyOf来完成很多功能
             value = Arrays.copyOf(value,
                     newCapacity(minimumCapacity));
         }
@@ -173,6 +176,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
      */
     public void trimToSize() {
         if (count < value.length) {
+            // 如果一个数组确定不再变化之后，可以将多余的空间释放
             value = Arrays.copyOf(value, count);
         }
     }
@@ -208,6 +212,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
         ensureCapacityInternal(newLength);
 
         if (count < newLength) {
+            // 因为String底层是char数组，所以这里填充char的默认值
             Arrays.fill(value, count, newLength, '\0');
         }
 
@@ -385,6 +390,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
             throw new StringIndexOutOfBoundsException(srcEnd);
         if (srcBegin > srcEnd)
             throw new StringIndexOutOfBoundsException("srcBegin > srcEnd");
+        // 只要是和数组操作相关的，一定要想到Arrays和System相关的数组操作
         System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
@@ -445,7 +451,9 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
         if (str == null)
             return appendNull();
         int len = str.length();
+        // 新数组应该是以后数组元素的长度，加上新字符串的字符数组的长度
         ensureCapacityInternal(count + len);
+        // 获取字符串的下标从0到len的所有字符，然后放入目标字符数组value的小标count的问题，还是System.arrayCopy啊
         str.getChars(0, len, value, count);
         count += len;
         return this;
@@ -455,6 +463,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
     public AbstractStringBuilder append(StringBuffer sb) {
         if (sb == null)
             return appendNull();
+        // 因为StringBuffer也是实现了CharSequence, 所以有length()方法
         int len = sb.length();
         ensureCapacityInternal(count + len);
         sb.getChars(0, len, value, count);
@@ -496,6 +505,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
         value[c++] = 'u';
         value[c++] = 'l';
         value[c++] = 'l';
+        // 注意c在上面自增了4次，这个也纳入到元素的个数中
         count = c;
         return this;
     }
@@ -539,6 +549,8 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
                 + s.length());
         int len = end - start;
         ensureCapacityInternal(count + len);
+        // 因为charSequence没有getChars方法，所以只能使用普通的for循环
+        // 但是CharSequence是一个接口，肯定可以强制转换成AbstractStringBuilder/StringBuffer类型，
         for (int i = start, j = count; i < end; i++, j++)
             value[j] = s.charAt(i);
         count += len;
@@ -564,6 +576,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
     public AbstractStringBuilder append(char[] str) {
         int len = str.length;
         ensureCapacityInternal(count + len);
+        // 直接复制，简单
         System.arraycopy(str, 0, value, count, len);
         count += len;
         return this;
@@ -612,6 +625,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
      * @return  a reference to this object.
      */
     public AbstractStringBuilder append(boolean b) {
+        // 将boolean转换成true或者false
         if (b) {
             ensureCapacityInternal(count + 4);
             value[count++] = 't';
@@ -626,6 +640,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
             value[count++] = 's';
             value[count++] = 'e';
         }
+        // return this可以支持链式调用
         return this;
     }
 
@@ -664,14 +679,17 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
      * @return  a reference to this object.
      */
     public AbstractStringBuilder append(int i) {
+        // 优化处理
         if (i == Integer.MIN_VALUE) {
             append("-2147483648");
             return this;
         }
+        // 计算int长度
         int appendedLength = (i < 0) ? Integer.stringSize(-i) + 1
                                      : Integer.stringSize(i);
         int spaceNeeded = count + appendedLength;
         ensureCapacityInternal(spaceNeeded);
+        // String也有getChars的实现，相信是为了服务StringBuffer
         Integer.getChars(i, spaceNeeded, value);
         count = spaceNeeded;
         return this;
@@ -716,6 +734,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
      * @return  a reference to this object.
      */
     public AbstractStringBuilder append(float f) {
+        // MIST
         FloatingDecimal.appendTo(f,this);
         return this;
     }
@@ -760,6 +779,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
             throw new StringIndexOutOfBoundsException();
         int len = end - start;
         if (len > 0) {
+            // 将后面的数组往前面挪动
             System.arraycopy(value, start+len, value, start, count-end);
             count -= len;
         }

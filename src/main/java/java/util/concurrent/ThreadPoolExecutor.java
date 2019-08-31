@@ -441,6 +441,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * return null even if it may later return non-null when delays
      * expire.
      */
+    // 底层是使用queue来存储任务
     private final BlockingQueue<Runnable> workQueue;
 
     /**
@@ -462,6 +463,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * Set containing all worker threads in pool. Accessed only when
      * holding mainLock.
      */
+    // 使用HashSet来存放所有工作线程
     private final HashSet<Worker> workers = new HashSet<Worker>();
 
     /**
@@ -518,6 +520,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * present or if allowCoreThreadTimeOut. Otherwise they wait
      * forever for new work.
      */
+    // 如果线程空闲超过一定时间，则关闭线程
     private volatile long keepAliveTime;
 
     /**
@@ -543,6 +546,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * The default rejected execution handler
      */
+    // 默认的拒绝策略处理器
     private static final RejectedExecutionHandler defaultHandler =
         new AbortPolicy();
 
@@ -1353,7 +1357,9 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * and so reject the task.
          */
         int c = ctl.get();
+        // 如果工作线程少于核心线程数
         if (workerCountOf(c) < corePoolSize) {
+            // 增加工作线程
             if (addWorker(command, true))
                 return;
             c = ctl.get();

@@ -261,6 +261,7 @@ class Thread implements Runnable {
      *
      * @return  the currently executing thread.
      */
+    // 我们经常用的方法Thread.currentThread();
     public static native Thread currentThread();
 
     /**
@@ -362,6 +363,7 @@ class Thread implements Runnable {
      */
     private void init(ThreadGroup g, Runnable target, String name,
                       long stackSize, AccessControlContext acc) {
+        // 因为Thread的构造函数默认帮我们指定了Thread name，所以我们不会遇到这个错误
         if (name == null) {
             throw new NullPointerException("name cannot be null");
         }
@@ -369,6 +371,7 @@ class Thread implements Runnable {
         this.name = name;
 
         Thread parent = currentThread();
+        // MIST
         SecurityManager security = System.getSecurityManager();
         if (g == null) {
             /* Determine if it's an applet or not */
@@ -410,6 +413,7 @@ class Thread implements Runnable {
             this.contextClassLoader = parent.contextClassLoader;
         this.inheritedAccessControlContext =
                 acc != null ? acc : AccessController.getContext();
+        // task
         this.target = target;
         setPriority(priority);
         if (parent.inheritableThreadLocals != null)
@@ -458,6 +462,7 @@ class Thread implements Runnable {
      *         nothing.
      */
     public Thread(Runnable target) {
+        // 难怪我们看到的线程日志都是以Thread-开头的
         init(null, target, "Thread-" + nextThreadNum(), 0);
     }
 
@@ -1245,7 +1250,10 @@ class Thread implements Runnable {
         }
 
         if (millis == 0) {
+            // 判断线程是否alive，alive代表任务没完成，线程还在执行，这个是让当前线程等待
+            // 这个没有性能问题？
             while (isAlive()) {
+                // 这个调用的是当前调用join方法的对象的wait方法
                 wait(0);
             }
         } else {
@@ -1352,6 +1360,7 @@ class Thread implements Runnable {
      */
     public final void setDaemon(boolean on) {
         checkAccess();
+        // isAlive是线程的方法
         if (isAlive()) {
             throw new IllegalThreadStateException();
         }
@@ -1489,6 +1498,7 @@ class Thread implements Runnable {
      *         the specified object.
      * @since 1.4
      */
+    // 检查线程是否拥有某个对象的锁
     public static native boolean holdsLock(Object obj);
 
     private static final StackTraceElement[] EMPTY_STACK_TRACE
@@ -1543,6 +1553,7 @@ class Thread implements Runnable {
             if (!isAlive()) {
                 return EMPTY_STACK_TRACE;
             }
+            // dumpThreads是用来获取线程的堆栈，可惜是个私有方法
             StackTraceElement[][] stackTraceArray = dumpThreads(new Thread[] {this});
             StackTraceElement[] stackTrace = stackTraceArray[0];
             // a thread that was alive during the previous isAlive call may have
@@ -1686,6 +1697,7 @@ class Thread implements Runnable {
         return result.booleanValue();
     }
 
+    // 获取线程的堆栈信息
     private native static StackTraceElement[][] dumpThreads(Thread[] threads);
     private native static Thread[] getThreads();
 
@@ -1736,10 +1748,12 @@ class Thread implements Runnable {
      * @since   1.5
      * @see #getState
      */
+    // 线程的状态
     public enum State {
         /**
          * Thread state for a thread which has not yet started.
          */
+        // 创建对象后，还没有调用start方法
         NEW,
 
         /**

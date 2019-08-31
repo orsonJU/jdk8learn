@@ -1505,6 +1505,7 @@ public abstract class ClassLoader {
     }
 
     // Returns the class's class loader, or null if none.
+    // 可以调用ClassLoader.getClassLoader来获取某个class的classloader
     static ClassLoader getClassLoader(Class<?> caller) {
         // This can be null if the VM is requesting it
         if (caller == null) {

@@ -260,6 +260,7 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public static Class<?> forName(String className)
                 throws ClassNotFoundException {
+        // 使用调用此方法的对象的classloader
         Class<?> caller = Reflection.getCallerClass();
         return forName0(className, true, ClassLoader.getClassLoader(caller), caller);
     }
@@ -924,6 +925,7 @@ public final class Class<T> implements java.io.Serializable,
      * @see     java.lang.reflect.Array
      * @since JDK1.1
      */
+    // 获取数组的类型，String[]则返回String
     public native Class<?> getComponentType();
 
 

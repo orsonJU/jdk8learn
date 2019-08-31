@@ -99,10 +99,12 @@ public class FutureTask<V> implements RunnableFuture<V> {
     private static final int INTERRUPTED  = 6;
 
     /** The underlying callable; nulled out after running */
+    // FutureTask底层是一个Callable
     private Callable<V> callable;
     /** The result to return or exception to throw from get() */
     private Object outcome; // non-volatile, protected by state reads/writes
     /** The thread running the callable; CASed during run() */
+    // MIST 哪里设置了这个runner
     private volatile Thread runner;
     /** Treiber stack of waiting threads */
     private volatile WaitNode waiters;
@@ -149,7 +151,9 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * @throws NullPointerException if the runnable is null
      */
     public FutureTask(Runnable runnable, V result) {
+        // 把Runnable包装成一个Callable
         this.callable = Executors.callable(runnable, result);
+        // FutureTask创建的时候状态为NEW
         this.state = NEW;       // ensure visibility of callable
     }
 
@@ -186,8 +190,10 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * @throws CancellationException {@inheritDoc}
      */
     public V get() throws InterruptedException, ExecutionException {
+        // 获取当前的任务状态
         int s = state;
         if (s <= COMPLETING)
+            // 如果没有完成，则进行等待
             s = awaitDone(false, 0L);
         return report(s);
     }
@@ -228,6 +234,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      */
     protected void set(V v) {
         if (UNSAFE.compareAndSwapInt(this, stateOffset, NEW, COMPLETING)) {
+            // 设置执行结果
             outcome = v;
             UNSAFE.putOrderedInt(this, stateOffset, NORMAL); // final state
             finishCompletion();
@@ -252,17 +259,22 @@ public class FutureTask<V> implements RunnableFuture<V> {
         }
     }
 
+    // 执行FutureTask，调用start方法
     public void run() {
+        // 如果状态不在NEW，或者MIST，则返回
         if (state != NEW ||
+            // MIST
             !UNSAFE.compareAndSwapObject(this, runnerOffset,
                                          null, Thread.currentThread()))
             return;
         try {
+            // 获取FutureTask隐含的Callable
             Callable<V> c = callable;
             if (c != null && state == NEW) {
                 V result;
                 boolean ran;
                 try {
+                    // 调用Callable的call方法
                     result = c.call();
                     ran = true;
                 } catch (Throwable ex) {
@@ -369,6 +381,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
                     Thread t = q.thread;
                     if (t != null) {
                         q.thread = null;
+                        // 唤醒目标线程
                         LockSupport.unpark(t);
                     }
                     WaitNode next = q.next;
@@ -426,6 +439,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
                 LockSupport.parkNanos(this, nanos);
             }
             else
+                // 当前线程被这个FutureTask阻塞, this是调用这个方法的线程，一般是main线程
                 LockSupport.park(this);
         }
     }

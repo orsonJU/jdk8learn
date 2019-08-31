@@ -105,18 +105,25 @@ package java.util.concurrent;
  * }}</pre>
  */
 public class ExecutorCompletionService<V> implements CompletionService<V> {
+    // 维护一个Executor
     private final Executor executor;
+    // 这是一个抽象的Executor实现，和上面的executor为什么要有2个？
     private final AbstractExecutorService aes;
+
+    // Queue用来存放完成的任务
     private final BlockingQueue<Future<V>> completionQueue;
 
     /**
      * FutureTask extension to enqueue upon completion
      */
+    // FutureTask的扩充，在task完成后放入一个blockingqueue中
     private class QueueingFuture extends FutureTask<Void> {
         QueueingFuture(RunnableFuture<V> task) {
             super(task, null);
             this.task = task;
         }
+
+        // FutureTask本身提供了done方法的钩子，默认提供了空实现，这里重写了这个钩子方法，把完成的任务放入到队列中
         protected void done() { completionQueue.add(task); }
         private final Future<V> task;
     }
@@ -146,7 +153,9 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
     public ExecutorCompletionService(Executor executor) {
         if (executor == null)
             throw new NullPointerException();
+        // 需要一个可以执行Runnable task的executor
         this.executor = executor;
+        // 这里是同一个executor，是为了强制转换成更具体的实现来更方便的调用方法？
         this.aes = (executor instanceof AbstractExecutorService) ?
             (AbstractExecutorService) executor : null;
         this.completionQueue = new LinkedBlockingQueue<Future<V>>();
@@ -178,6 +187,7 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
     public Future<V> submit(Callable<V> task) {
         if (task == null) throw new NullPointerException();
         RunnableFuture<V> f = newTaskFor(task);
+        // 忽略底层的executor实现，执行一个任务
         executor.execute(new QueueingFuture(f));
         return f;
     }
@@ -190,6 +200,7 @@ public class ExecutorCompletionService<V> implements CompletionService<V> {
     }
 
     public Future<V> take() throws InterruptedException {
+        // 从任务的完成队列中获取一个已经完成的任务
         return completionQueue.take();
     }
 

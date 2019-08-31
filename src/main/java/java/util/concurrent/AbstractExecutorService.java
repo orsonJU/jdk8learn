@@ -108,7 +108,9 @@ public abstract class AbstractExecutorService implements ExecutorService {
      */
     public Future<?> submit(Runnable task) {
         if (task == null) throw new NullPointerException();
+        // 把提交的Runnable任务转变成RunnableFuture对象
         RunnableFuture<Void> ftask = newTaskFor(task, null);
+        // 执行任务， 执行的具体细节交给子类实现
         execute(ftask);
         return ftask;
     }
@@ -164,32 +166,44 @@ public abstract class AbstractExecutorService implements ExecutorService {
             Iterator<? extends Callable<T>> it = tasks.iterator();
 
             // Start one task for sure; the rest incrementally
+            // 开启一个任务
             futures.add(ecs.submit(it.next()));
             --ntasks;
             int active = 1;
 
             for (;;) {
+                // poll方法不会阻塞，如果队列中没有元素，则返回null
                 Future<T> f = ecs.poll();
+                // 还没有任务完成
                 if (f == null) {
                     if (ntasks > 0) {
                         --ntasks;
+                        // 继续放入新的任务
                         futures.add(ecs.submit(it.next()));
                         ++active;
                     }
+                    // 可能执行的任务已经完成，但是调用下面f.get的时候出现了异常，则结束循环
                     else if (active == 0)
                         break;
+
+                    // 如果全部任务都提交了，并且有超时时间限制
                     else if (timed) {
+                        // poll并等待nanos时间
                         f = ecs.poll(nanos, TimeUnit.NANOSECONDS);
                         if (f == null)
                             throw new TimeoutException();
                         nanos = deadline - System.nanoTime();
                     }
+                    // 如果全部任务都提交了，但是没有超时时间限制
                     else
+                        // take会阻塞，并等待有完成的任务
                         f = ecs.take();
                 }
+                // 有完成的任务
                 if (f != null) {
                     --active;
                     try {
+                        // 获取执行的结果
                         return f.get();
                     } catch (ExecutionException eex) {
                         ee = eex;
@@ -204,6 +218,7 @@ public abstract class AbstractExecutorService implements ExecutorService {
             throw ee;
 
         } finally {
+            // 如果已有一个完成的任务，则取消队列中的其他任务
             for (int i = 0, size = futures.size(); i < size; i++)
                 futures.get(i).cancel(true);
         }
