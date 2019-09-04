@@ -177,6 +177,7 @@ public class ScheduledThreadPoolExecutor
         return System.nanoTime();
     }
 
+    // FutureTask是使用LockSupport.park和unpark来实现get方法的阻塞
     private class ScheduledFutureTask<V>
             extends FutureTask<V> implements RunnableScheduledFuture<V> {
 
@@ -195,6 +196,7 @@ public class ScheduledThreadPoolExecutor
         private final long period;
 
         /** The actual task to be re-enqueued by reExecutePeriodic */
+        // 包裹的需要真正执行的任务
         RunnableScheduledFuture<V> outerTask = this;
 
         /**
@@ -233,6 +235,7 @@ public class ScheduledThreadPoolExecutor
         }
 
         public long getDelay(TimeUnit unit) {
+            // 返回下次执行的时间time和现在时间now的差值
             return unit.convert(time - now(), NANOSECONDS);
         }
 
@@ -270,6 +273,7 @@ public class ScheduledThreadPoolExecutor
         private void setNextRunTime() {
             long p = period;
             if (p > 0)
+                // 增加延迟的周期
                 time += p;
             else
                 time = triggerTime(-p);
@@ -285,14 +289,18 @@ public class ScheduledThreadPoolExecutor
         /**
          * Overrides FutureTask version so as to reset/requeue if periodic.
          */
+        // ThreadPoolExecutor会调用run方法来执行
         public void run() {
             boolean periodic = isPeriodic();
             if (!canRunInCurrentRunState(periodic))
                 cancel(false);
             else if (!periodic)
+                // 如果不是周期性，则直接运行
                 ScheduledFutureTask.super.run();
             else if (ScheduledFutureTask.super.runAndReset()) {
+                // 设置下一次执行的时间
                 setNextRunTime();
+                // outerTask是真正要执行的任务
                 reExecutePeriodic(outerTask);
             }
         }
@@ -323,14 +331,19 @@ public class ScheduledThreadPoolExecutor
      */
     private void delayedExecute(RunnableScheduledFuture<?> task) {
         if (isShutdown())
+            // 执行拒绝策略
             reject(task);
         else {
+            // 往worker queue里面添加任务
             super.getQueue().add(task);
             if (isShutdown() &&
                 !canRunInCurrentRunState(task.isPeriodic()) &&
                 remove(task))
+                // RunnableScheduledFuture实现了future，所以可以cancel，cancel直接unpark了线程
+                // 导致set result的方法没有执行，get直接返回的outcome的结果为null或者默认值
                 task.cancel(false);
             else
+                // 执行任务？
                 ensurePrestart();
         }
     }
@@ -343,6 +356,7 @@ public class ScheduledThreadPoolExecutor
      */
     void reExecutePeriodic(RunnableScheduledFuture<?> task) {
         if (canRunInCurrentRunState(true)) {
+            // 计算好时间后，将新的任务加入到worker queue队列中
             super.getQueue().add(task);
             if (!canRunInCurrentRunState(true) && remove(task))
                 task.cancel(false);
@@ -427,6 +441,7 @@ public class ScheduledThreadPoolExecutor
      * @throws IllegalArgumentException if {@code corePoolSize < 0}
      */
     public ScheduledThreadPoolExecutor(int corePoolSize) {
+        // 创建一个ThreadPoolExecutor，使用自己实现的DelayedWorkQueue
         super(corePoolSize, Integer.MAX_VALUE, 0, NANOSECONDS,
               new DelayedWorkQueue());
     }
@@ -527,9 +542,12 @@ public class ScheduledThreadPoolExecutor
                                        TimeUnit unit) {
         if (command == null || unit == null)
             throw new NullPointerException();
+        // 把runnable task用一个ScheduledFutureTask进行包装
         RunnableScheduledFuture<?> t = decorateTask(command,
             new ScheduledFutureTask<Void>(command, null,
-                                          triggerTime(delay, unit)));
+                                          triggerTime(delay, unit))); // 计算下次trigger的时间
+
+        // 延迟执行
         delayedExecute(t);
         return t;
     }
@@ -806,6 +824,7 @@ public class ScheduledThreadPoolExecutor
      * class must be declared as a BlockingQueue<Runnable> even though
      * it can only hold RunnableScheduledFutures.
      */
+    // 实现了自己的blocking queue
     static class DelayedWorkQueue extends AbstractQueue<Runnable>
         implements BlockingQueue<Runnable> {
 
@@ -898,6 +917,7 @@ public class ScheduledThreadPoolExecutor
                 int child = (k << 1) + 1;
                 RunnableScheduledFuture<?> c = queue[child];
                 int right = child + 1;
+                // 这里实线了delayed接口，而delay接口又实现了comparable接口
                 if (right < size && c.compareTo(queue[right]) > 0)
                     c = queue[child = right];
                 if (key.compareTo(c) <= 0)
@@ -1002,6 +1022,7 @@ public class ScheduledThreadPoolExecutor
             }
         }
 
+        // ThreadPoolExecutor会在增加任务的时候调用此方法
         public boolean offer(Runnable x) {
             if (x == null)
                 throw new NullPointerException();
@@ -1017,10 +1038,12 @@ public class ScheduledThreadPoolExecutor
                     queue[0] = e;
                     setIndex(e, 0);
                 } else {
+                    // 新添加的任务需要调整其在堆中的顺序
                     siftUp(i, e);
                 }
                 if (queue[0] == e) {
                     leader = null;
+                    // 通知在worker queue.poll和take方法中被阻塞的线程
                     available.signal();
                 }
             } finally {
@@ -1048,10 +1071,13 @@ public class ScheduledThreadPoolExecutor
          * @param f the task to remove and return
          */
         private RunnableScheduledFuture<?> finishPoll(RunnableScheduledFuture<?> f) {
+            // 数组的大小减少1
             int s = --size;
+            // 猜测这里应该用了一个大顶堆，堆最后的任务是最快被执行的
             RunnableScheduledFuture<?> x = queue[s];
             queue[s] = null;
             if (s != 0)
+                // 调整大顶堆，x已经计算了下次执行的时间，所以重新需要重新调整
                 siftDown(0, x);
             setIndex(f, -1);
             return f;
@@ -1071,6 +1097,7 @@ public class ScheduledThreadPoolExecutor
             }
         }
 
+        // ThreadPoolExecutor会调用这里的take方法
         public RunnableScheduledFuture<?> take() throws InterruptedException {
             final ReentrantLock lock = this.lock;
             lock.lockInterruptibly();
@@ -1078,6 +1105,7 @@ public class ScheduledThreadPoolExecutor
                 for (;;) {
                     RunnableScheduledFuture<?> first = queue[0];
                     if (first == null)
+                        // 使用condition的await，需要使用signal方法来激活
                         available.await();
                     else {
                         long delay = first.getDelay(NANOSECONDS);
@@ -1105,6 +1133,7 @@ public class ScheduledThreadPoolExecutor
             }
         }
 
+        // ThreadPoolExecutor中的work queue是调用这里的poll方法
         public RunnableScheduledFuture<?> poll(long timeout, TimeUnit unit)
             throws InterruptedException {
             long nanos = unit.toNanos(timeout);
@@ -1112,20 +1141,24 @@ public class ScheduledThreadPoolExecutor
             lock.lockInterruptibly();
             try {
                 for (;;) {
+                    // 获取blocking queue中的第一个元素
                     RunnableScheduledFuture<?> first = queue[0];
                     if (first == null) {
                         if (nanos <= 0)
                             return null;
                         else
+                            // codition锁，底层是使用了LockSupport.park
                             nanos = available.awaitNanos(nanos);
                     } else {
                         long delay = first.getDelay(NANOSECONDS);
                         if (delay <= 0)
+                            // 到时间执行了
                             return finishPoll(first);
                         if (nanos <= 0)
                             return null;
                         first = null; // don't retain ref while waiting
                         if (nanos < delay || leader != null)
+                            // 如果还需要等待delay这么长的时间才能执行任务，则刮起线程到timeout？
                             nanos = available.awaitNanos(nanos);
                         else {
                             Thread thisThread = Thread.currentThread();

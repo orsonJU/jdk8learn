@@ -165,6 +165,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
         return state != NEW;
     }
 
+    // 取消future的任务
     public boolean cancel(boolean mayInterruptIfRunning) {
         if (!(state == NEW &&
               UNSAFE.compareAndSwapInt(this, stateOffset, NEW,
@@ -175,12 +176,14 @@ public class FutureTask<V> implements RunnableFuture<V> {
                 try {
                     Thread t = runner;
                     if (t != null)
+                        // 首先interrupt线程的执行
                         t.interrupt();
                 } finally { // final state
                     UNSAFE.putOrderedInt(this, stateOffset, INTERRUPTED);
                 }
             }
         } finally {
+            // 然后unpark的线程，因为任务没有执行完毕，所以setResult方法没有执行，此时的get方法应当返回了null
             finishCompletion();
         }
         return true;

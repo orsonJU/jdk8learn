@@ -603,16 +603,19 @@ public abstract class AbstractQueuedSynchronizer
      * @return the new node
      */
     private Node addWaiter(Node mode) {
+        // 把当前线程包装成Node
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
         if (pred != null) {
             node.prev = pred;
+            // 设置新的tail为当前线程
             if (compareAndSetTail(pred, node)) {
                 pred.next = node;
                 return node;
             }
         }
+        // 把当前线程入队, MIST，感觉和上面这段逻辑重复了
         enq(node);
         return node;
     }
@@ -659,6 +662,7 @@ public abstract class AbstractQueuedSynchronizer
                     s = t;
         }
         if (s != null)
+            // 终于出现了，unpark next节点的线程
             LockSupport.unpark(s.thread);
     }
 
@@ -833,6 +837,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if interrupted
      */
     private final boolean parkAndCheckInterrupt() {
+        // 终于出现了，如果当前线程获取独占锁失败，则park当前线程
         LockSupport.park(this);
         return Thread.interrupted();
     }
@@ -859,6 +864,7 @@ public abstract class AbstractQueuedSynchronizer
         try {
             boolean interrupted = false;
             for (;;) {
+                // 如果当前线程是head节点，则尝试获取锁
                 final Node p = node.predecessor();
                 if (p == head && tryAcquire(arg)) {
                     setHead(node);
@@ -866,6 +872,7 @@ public abstract class AbstractQueuedSynchronizer
                     failed = false;
                     return interrupted;
                 }
+                // 如果抢不到独占锁
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     parkAndCheckInterrupt())
                     interrupted = true;
@@ -1195,6 +1202,7 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      */
     public final void acquire(int arg) {
+        // 调用具体锁的实现
         if (!tryAcquire(arg) &&
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             selfInterrupt();
@@ -1257,10 +1265,13 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      * @return the value returned from {@link #tryRelease}
      */
+    // 释放独占锁
     public final boolean release(int arg) {
+        // 当且仅当state==0，代表释放锁成功
         if (tryRelease(arg)) {
             Node h = head;
             if (h != null && h.waitStatus != 0)
+                // unpark后继者
                 unparkSuccessor(h);
             return true;
         }
@@ -1516,6 +1527,8 @@ public abstract class AbstractQueuedSynchronizer
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
         Node s;
+        // 如果head指向的node不等于tail指向的node
+        // 如果head的next是空 || head.next不是当前的线程
         return h != t &&
             ((s = h.next) == null || s.thread != Thread.currentThread());
     }
@@ -1720,6 +1733,7 @@ public abstract class AbstractQueuedSynchronizer
         boolean failed = true;
         try {
             int savedState = getState();
+            // 释放独占锁，复原下一个节点的线程
             if (release(savedState)) {
                 failed = false;
                 return savedState;
@@ -1852,10 +1866,14 @@ public abstract class AbstractQueuedSynchronizer
                 unlinkCancelledWaiters();
                 t = lastWaiter;
             }
+
+
             Node node = new Node(Thread.currentThread(), Node.CONDITION);
             if (t == null)
+                // 如果AQS链表中没有节点，则把当前线程作为firtWaiter（head节点）
                 firstWaiter = node;
             else
+                // 否则作为最后一个节点的下一个节点
                 t.nextWaiter = node;
             lastWaiter = node;
             return node;
@@ -1935,6 +1953,7 @@ public abstract class AbstractQueuedSynchronizer
          *         returns {@code false}
          */
         public final void signal() {
+            // 如果没有持有独占锁
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
             Node first = firstWaiter;
@@ -2032,6 +2051,7 @@ public abstract class AbstractQueuedSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
+            // 把当前节点放入到AQS的链表中
             Node node = addConditionWaiter();
             int savedState = fullyRelease(node);
             int interruptMode = 0;

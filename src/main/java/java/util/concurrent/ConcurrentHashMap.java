@@ -752,11 +752,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     @SuppressWarnings("unchecked")
     static final <K,V> Node<K,V> tabAt(Node<K,V>[] tab, int i) {
+        // 这里不直接使用tab[i]的原因是，volatile只对数组tab有可见行，所以对元素的引用不具有可见行
         return (Node<K,V>)U.getObjectVolatile(tab, ((long)i << ASHIFT) + ABASE);
     }
 
     static final <K,V> boolean casTabAt(Node<K,V>[] tab, int i,
                                         Node<K,V> c, Node<K,V> v) {
+        // 将table的位置((long)i << ASHIFT) + ABASE的bin的值从c更新成v
         return U.compareAndSwapObject(tab, ((long)i << ASHIFT) + ABASE, c, v);
     }
 
@@ -1009,27 +1011,37 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /** Implementation for put and putIfAbsent */
     final V putVal(K key, V value, boolean onlyIfAbsent) {
         if (key == null || value == null) throw new NullPointerException();
+        // 获取key的hash值
         int hash = spread(key.hashCode());
         int binCount = 0;
+        // 进行自旋操作
         for (Node<K,V>[] tab = table;;) {
             Node<K,V> f; int n, i, fh;
             if (tab == null || (n = tab.length) == 0)
+                // 如果table为null或者长度为0，则初始化table
                 tab = initTable();
             else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
+                // 如果对应bin没有元素，则cas自旋并尝试放入值
+                // 这里使用unsafe方法，尝试将table中null的值更新成对应节点
                 if (casTabAt(tab, i, null,
                              new Node<K,V>(hash, key, value, null)))
                     break;                   // no lock when adding to empty bin
             }
+            // 如果当前bin中的第一个元素的hash是-1
             else if ((fh = f.hash) == MOVED)
                 tab = helpTransfer(tab, f);
             else {
+                // 定位到bin，但是bin不为空
                 V oldVal = null;
                 synchronized (f) {
+                    // 双重判定当前位置还是节点f
                     if (tabAt(tab, i) == f) {
                         if (fh >= 0) {
                             binCount = 1;
+                            // 自旋
                             for (Node<K,V> e = f;; ++binCount) {
                                 K ek;
+                                // 如果当前元素的hash和key和bin中的元素的hash和key一样，则替换
                                 if (e.hash == hash &&
                                     ((ek = e.key) == key ||
                                      (ek != null && key.equals(ek)))) {
@@ -1038,6 +1050,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                         e.val = value;
                                     break;
                                 }
+                                // 否则，便利链表中的每隔元素进行比较
                                 Node<K,V> pred = e;
                                 if ((e = e.next) == null) {
                                     pred.next = new Node<K,V>(hash, key,
@@ -1058,6 +1071,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         }
                     }
                 }
+                // 如果bin中的链表元素超过8个，则转换成红黑树
                 if (binCount != 0) {
                     if (binCount >= TREEIFY_THRESHOLD)
                         treeifyBin(tab, i);
@@ -2223,15 +2237,28 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     private final Node<K,V>[] initTable() {
         Node<K,V>[] tab; int sc;
         while ((tab = table) == null || tab.length == 0) {
+            // 如果发现已经被其他线程正在初始化，则让出CPU时间
             if ((sc = sizeCtl) < 0)
                 Thread.yield(); // lost initialization race; just spin
+
+            // 如果发现没有任何线程在初始化，则尝试把sizeCtl设置成-1，然后进行初始化
+            /*
+                这里看到了下面这段代码的影子
+                sychronized(tab) {
+                    if(tab == null) {
+                        ... 初始化
+                    }
+                }
+             */
             else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                 try {
                     if ((tab = table) == null || tab.length == 0) {
+                        // 当sc > 0则代表扩容
                         int n = (sc > 0) ? sc : DEFAULT_CAPACITY;
                         @SuppressWarnings("unchecked")
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
                         table = tab = nt;
+                        // 保留0.75的容量大小，右移2为，相当于0.25
                         sc = n - (n >>> 2);
                     }
                 } finally {
