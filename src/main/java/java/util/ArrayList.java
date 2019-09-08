@@ -852,9 +852,11 @@ public class ArrayList<E> extends AbstractList<E>
     /**
      * An optimized version of AbstractList.Itr
      */
+    // ArrayList的迭代器实现
     private class Itr implements Iterator<E> {
         int cursor;       // index of next element to return
         int lastRet = -1; // index of last element returned; -1 if no such
+        // 迭代器模式过程中，不能对原来的数组进行修改
         int expectedModCount = modCount;
 
         public boolean hasNext() {

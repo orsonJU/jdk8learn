@@ -409,6 +409,7 @@ public class Proxy implements java.io.Serializable {
      */
     private static Class<?> getProxyClass0(ClassLoader loader,
                                            Class<?>... interfaces) {
+        // interface最多不能超过1个char的大小
         if (interfaces.length > 65535) {
             throw new IllegalArgumentException("interface limit exceeded");
         }
@@ -700,6 +701,7 @@ public class Proxy implements java.io.Serializable {
      *          {@code null}
      */
     @CallerSensitive
+    // JDK动态代理
     public static Object newProxyInstance(ClassLoader loader,
                                           Class<?>[] interfaces,
                                           InvocationHandler h)
@@ -707,6 +709,7 @@ public class Proxy implements java.io.Serializable {
     {
         Objects.requireNonNull(h);
 
+        // 调用数组的clone方法？
         final Class<?>[] intfs = interfaces.clone();
         final SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
@@ -716,6 +719,7 @@ public class Proxy implements java.io.Serializable {
         /*
          * Look up or generate the designated proxy class.
          */
+        // 创建代理类
         Class<?> cl = getProxyClass0(loader, intfs);
 
         /*

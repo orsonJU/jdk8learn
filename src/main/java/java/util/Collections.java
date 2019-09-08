@@ -4851,6 +4851,7 @@ public class Collections {
      * @since 1.3
      */
     public static <K,V> Map<K,V> singletonMap(K key, V value) {
+        // 创建只有一个<key, value>的map对象
         return new SingletonMap<>(key, value);
     }
 

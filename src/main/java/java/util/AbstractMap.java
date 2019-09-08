@@ -109,8 +109,11 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * @throws NullPointerException {@inheritDoc}
      */
     public boolean containsValue(Object value) {
+        // entrySet返回一个Set集合，集合中每个元素都是Entry，因为Set集合实现了Collection，而
+        // collection实现了Interable接口，所以是可以遍历的
         Iterator<Entry<K,V>> i = entrySet().iterator();
         if (value==null) {
+            // 判断null值
             while (i.hasNext()) {
                 Entry<K,V> e = i.next();
                 if (e.getValue()==null)
@@ -141,6 +144,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * @throws NullPointerException {@inheritDoc}
      */
     public boolean containsKey(Object key) {
+        // 和containsValue一模一样的实现
         Iterator<Map.Entry<K,V>> i = entrySet().iterator();
         if (key==null) {
             while (i.hasNext()) {
@@ -173,6 +177,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * @throws NullPointerException          {@inheritDoc}
      */
     public V get(Object key) {
+        // 这个默认的get方法明显存在性能的问题
         Iterator<Entry<K,V>> i = entrySet().iterator();
         if (key==null) {
             while (i.hasNext()) {
@@ -206,6 +211,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * @throws IllegalArgumentException      {@inheritDoc}
      */
     public V put(K key, V value) {
+        // 因为Map可以通过iteractor来遍历所有key和value，但是底层是如何存放的，AbstractMap并没有做限制
         throw new UnsupportedOperationException();
     }
 
@@ -345,10 +351,16 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      */
     public Set<K> keySet() {
         Set<K> ks = keySet;
+        // 第一次调用keySet的时候是null
         if (ks == null) {
+            // AbstractSet是抽象类，所以要实现所有抽象方法
             ks = new AbstractSet<K>() {
+
+                // 可以有一个简单实现接口Interator的代码
                 public Iterator<K> iterator() {
+
                     return new Iterator<K>() {
+
                         private Iterator<Entry<K,V>> i = entrySet().iterator();
 
                         public boolean hasNext() {
@@ -356,6 +368,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
                         }
 
                         public K next() {
+                            // 实现了next方法，因为是keySet，所以返回的是entry.getKey
                             return i.next().getKey();
                         }
 
@@ -366,6 +379,8 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
                 }
 
                 public int size() {
+                    // 返回外层AbstractMap的size方法的返回值
+                    // 匿名内部类调用外部类方法的例子
                     return AbstractMap.this.size();
                 }
 
@@ -402,10 +417,15 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      * performed, so there is a slight chance that multiple calls to this
      * method will not all return the same collection.
      */
+    // 为什么KeySet返回的是一个Set，但是values返回的却是一个collection？
+    // 因为可以只能唯一，但是values可以重复，这个是map的性质决定了它们返回的数据结构
     public Collection<V> values() {
         Collection<V> vals = values;
         if (vals == null) {
+            // 实现了一个匿名AbstractCollection
             vals = new AbstractCollection<V>() {
+
+                // 再一次实现了一个迭代器
                 public Iterator<V> iterator() {
                     return new Iterator<V>() {
                         private Iterator<Entry<K,V>> i = entrySet().iterator();
@@ -415,6 +435,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
                         }
 
                         public V next() {
+                            // 因为是获取vlues，所以只返回entrySet.getValue
                             return i.next().getValue();
                         }
 
@@ -479,10 +500,12 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
         if (!(o instanceof Map))
             return false;
         Map<?,?> m = (Map<?,?>) o;
+        // 如果Map的大小不一样，则返回false，这里算是一个优化操作
         if (m.size() != size())
             return false;
 
         try {
+            // 遍历每个key和value进行比较
             Iterator<Entry<K,V>> i = entrySet().iterator();
             while (i.hasNext()) {
                 Entry<K,V> e = i.next();
@@ -548,6 +571,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
         if (! i.hasNext())
             return "{}";
 
+        // stringbuilder速度比stringbuffer快，但不是线程安全的
         StringBuilder sb = new StringBuilder();
         sb.append('{');
         for (;;) {
@@ -604,6 +628,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      *
      * @since 1.6
      */
+    // 这里也提供了一个Map.Entry的简单实现
     public static class SimpleEntry<K,V>
         implements Entry<K,V>, java.io.Serializable
     {
@@ -690,6 +715,7 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
         public boolean equals(Object o) {
             if (!(o instanceof Map.Entry))
                 return false;
+            // 把对象转换成Map.Entry，然后用key和value进行比较
             Map.Entry<?,?> e = (Map.Entry<?,?>)o;
             return eq(key, e.getKey()) && eq(value, e.getValue());
         }
@@ -734,11 +760,13 @@ public abstract class AbstractMap<K,V> implements Map<K,V> {
      *
      * @since 1.6
      */
+    // 不可修改的Map.Entry
     public static class SimpleImmutableEntry<K,V>
         implements Entry<K,V>, java.io.Serializable
     {
         private static final long serialVersionUID = 7138329143949025153L;
 
+        // 原来是使用了final字眼来限制初始化的对key和value的修改
         private final K key;
         private final V value;
 

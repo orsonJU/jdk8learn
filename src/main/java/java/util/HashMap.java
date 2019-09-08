@@ -134,6 +134,7 @@ import java.util.function.Function;
  * @see     Hashtable
  * @since   1.2
  */
+// AbstractMap已经实现了接口Map，为啥HashMap又要再实现多一次Map呢？
 public class HashMap<K,V> extends AbstractMap<K,V>
     implements Map<K,V>, Cloneable, Serializable {
 

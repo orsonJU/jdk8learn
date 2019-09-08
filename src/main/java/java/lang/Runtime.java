@@ -44,6 +44,7 @@ import sun.reflect.Reflection;
  */
 
 public class Runtime {
+    // 单例模式，这个是饥饿模式，直接创建了实例对象
     private static Runtime currentRuntime = new Runtime();
 
     /**

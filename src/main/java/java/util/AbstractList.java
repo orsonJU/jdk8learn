@@ -371,6 +371,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
             checkForComodification();
 
             try {
+                // 迭代器调用的是外部类的remove方法
                 AbstractList.this.remove(lastRet);
                 if (lastRet < cursor)
                     cursor--;
@@ -382,12 +383,15 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
         }
 
         final void checkForComodification() {
+            // 检查数组是否被修改，如果被修改，则抛出异常
             if (modCount != expectedModCount)
                 throw new ConcurrentModificationException();
         }
     }
 
+    // 扩展Itr
     private class ListItr extends Itr implements ListIterator<E> {
+        // 构造函数，第一个迭代元素的下标
         ListItr(int index) {
             cursor = index;
         }

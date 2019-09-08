@@ -349,6 +349,8 @@ public class DriverManager {
      * @exception NullPointerException if {@code driver} is null
      * @since 1.8
      */
+    // 我猜想，在Class.forname(...)的时候调用这个registerDriver来注册在classpath里面的驱动
+    // 但是这个方法是jdk1.8才有的，那么在jdk1.8之前，是怎样进行驱动的注册的呢？
     public static synchronized void registerDriver(java.sql.Driver driver,
             DriverAction da)
         throws SQLException {
@@ -661,6 +663,7 @@ public class DriverManager {
             if(isDriverAllowed(aDriver.driver, callerCL)) {
                 try {
                     println("    trying " + aDriver.driver.getClass().getName());
+                    // 调用注册的driver的connect方法进行连接
                     Connection con = aDriver.driver.connect(url, info);
                     if (con != null) {
                         // Success!

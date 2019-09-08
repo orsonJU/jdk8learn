@@ -741,6 +741,7 @@ public class EnumMap<K extends Enum<K>, V> extends AbstractMap<K, V>
      */
     private void typeCheck(K key) {
         Class<?> keyClass = key.getClass();
+        // 确保放入到EnumMap的key的类型和声明时候一致
         if (keyClass != keyType && keyClass.getSuperclass() != keyType)
             throw new ClassCastException(keyClass + " != " + keyType);
     }

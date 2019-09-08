@@ -535,6 +535,7 @@ public class TreeMap<K,V>
     public V put(K key, V value) {
         Entry<K,V> t = root;
         if (t == null) {
+            // 肯定返回0，因为没有其他任何的节点
             compare(key, key); // type (and possibly null) check
 
             root = new Entry<>(key, value, null);
@@ -548,6 +549,7 @@ public class TreeMap<K,V>
         Comparator<? super K> cpr = comparator;
         if (cpr != null) {
             do {
+                // MIST 根节点作为parent, 观察下面的代码，它并不是使用的堆，它是一课二叉树，而且不是平衡二叉树
                 parent = t;
                 cmp = cpr.compare(key, t.key);
                 if (cmp < 0)
@@ -561,6 +563,7 @@ public class TreeMap<K,V>
         else {
             if (key == null)
                 throw new NullPointerException();
+            // MIST 如果将一个key转换成Comparable？
             @SuppressWarnings("unchecked")
                 Comparable<? super K> k = (Comparable<? super K>) key;
             do {
@@ -2254,6 +2257,7 @@ public class TreeMap<K,V>
     }
 
     /** From CLR */
+    // TreeMap使用的是红黑树？
     private void fixAfterInsertion(Entry<K,V> x) {
         x.color = RED;
 

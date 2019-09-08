@@ -96,6 +96,7 @@ public class CopyOnWriteArrayList<E>
     final transient ReentrantLock lock = new ReentrantLock();
 
     /** The array, accessed only via getArray/setArray. */
+    // 哈哈，我想到了为了防止更新array，导致其他线程可见性的问题，必须使用volatile
     private transient volatile Object[] array;
 
     /**
@@ -136,6 +137,7 @@ public class CopyOnWriteArrayList<E>
             elements = c.toArray();
             // c.toArray might (incorrectly) not return Object[] (see 6260652)
             if (elements.getClass() != Object[].class)
+                // 复制目标对象的底层数组
                 elements = Arrays.copyOf(elements, elements.length, Object[].class);
         }
         setArray(elements);
@@ -186,8 +188,10 @@ public class CopyOnWriteArrayList<E>
      * @param fence one past last index to search
      * @return index of element, or -1 if absent
      */
+    // 底层数组的查找，我们从数据结构课程上都知道，需要遍历整个数组，如果输入有序，则使用二分查找法
     private static int indexOf(Object o, Object[] elements,
                                int index, int fence) {
+        // 特殊处理null值
         if (o == null) {
             for (int i = index; i < fence; i++)
                 if (elements[i] == null)
@@ -384,6 +388,8 @@ public class CopyOnWriteArrayList<E>
 
     @SuppressWarnings("unchecked")
     private E get(Object[] a, int index) {
+        // MIST 为什么没有使用读锁？
+        // 这段逻辑会出现underlying array正在被更新，但是其他线程仍然可以读取元素
         return (E) a[index];
     }
 
@@ -411,7 +417,9 @@ public class CopyOnWriteArrayList<E>
 
             if (oldValue != element) {
                 int len = elements.length;
+                // 先复制一个数组副本
                 Object[] newElements = Arrays.copyOf(elements, len);
+                // 然后替换数值，并设置为新的数组
                 newElements[index] = element;
                 setArray(newElements);
             } else {
@@ -434,10 +442,13 @@ public class CopyOnWriteArrayList<E>
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
+            // getArray返回underlying array
             Object[] elements = getArray();
             int len = elements.length;
+            // 复制一份当前数组的副本
             Object[] newElements = Arrays.copyOf(elements, len + 1);
             newElements[len] = e;
+            // 把新的数组设置为underlying array
             setArray(newElements);
             return true;
         } finally {

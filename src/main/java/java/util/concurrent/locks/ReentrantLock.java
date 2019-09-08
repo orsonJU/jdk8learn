@@ -213,7 +213,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
                 // 这里不会去判断是否链表中有其他线程在等待锁，只要获取成功，则让当前线程拥有独占锁
                 setExclusiveOwnerThread(Thread.currentThread());
             else
-                // 如果获取失败，则排排队获取独占锁
+                // 如果尝试获取独占锁失败，则继续判定当前线程是否拥有独占锁，如果是，则state自增1
                 acquire(1);
         }
 
