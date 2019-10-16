@@ -1,25 +1,5 @@
 /*
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
  */
 
 /*
@@ -116,9 +96,12 @@ public class FutureTask<V> implements RunnableFuture<V> {
      */
     @SuppressWarnings("unchecked")
     private V report(int s) throws ExecutionException {
+        // outcome是结果
         Object x = outcome;
         if (s == NORMAL)
             return (V)x;
+
+        // 大于COMPLETING的结果中，NORMAL已经在上面判断了，除外的都是exception的情况
         if (s >= CANCELLED)
             throw new CancellationException();
         throw new ExecutionException((Throwable)x);
@@ -266,7 +249,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
     public void run() {
         // 如果状态不在NEW，或者MIST，则返回
         if (state != NEW ||
-            // MIST
+            // 把runner设置为当前的线程 mist 为什么要专门设置这个呢？不是可以直接获取吗？
             !UNSAFE.compareAndSwapObject(this, runnerOffset,
                                          null, Thread.currentThread()))
             return;
@@ -277,7 +260,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
                 V result;
                 boolean ran;
                 try {
-                    // 调用Callable的call方法
+                    // 调用Callable的call方法，call方法应该是一段异步的/耗时的任务
+                    // 当前线程会负责等待结果的返回
                     result = c.call();
                     ran = true;
                 } catch (Throwable ex) {
@@ -414,6 +398,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
         final long deadline = timed ? System.nanoTime() + nanos : 0L;
         WaitNode q = null;
         boolean queued = false;
+        // 自旋
         for (;;) {
             if (Thread.interrupted()) {
                 removeWaiter(q);
@@ -421,19 +406,23 @@ public class FutureTask<V> implements RunnableFuture<V> {
             }
 
             int s = state;
+            // 其中一种情况便是NORMAL
             if (s > COMPLETING) {
                 if (q != null)
                     q.thread = null;
                 return s;
             }
             else if (s == COMPLETING) // cannot time out yet
+                // 如果底层的线程还在执行，则让出CPU时间碎片
                 Thread.yield();
             else if (q == null)
+                // mist 什么是waitnode
                 q = new WaitNode();
             else if (!queued)
                 queued = UNSAFE.compareAndSwapObject(this, waitersOffset,
                                                      q.next = waiters, q);
             else if (timed) {
+                // 如果有时间的设置，则让当前线程停靠指定的时间
                 nanos = deadline - System.nanoTime();
                 if (nanos <= 0L) {
                     removeWaiter(q);

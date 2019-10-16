@@ -224,6 +224,8 @@ public abstract class Selector implements Closeable {
      *          If an I/O error occurs
      */
     public static Selector open() throws IOException {
+        // 通过SPI模型，加载实现的service provider
+        // 底下实现的是sun公司提供的selector
         return SelectorProvider.provider().openSelector();
     }
 

@@ -365,6 +365,7 @@ public abstract class SelectionKey {
 
     private volatile Object attachment = null;
 
+    // 原子操作，确保SelectionKey对象中的字段attachment是原子更新的，使用这个方法比使用锁的性能更好：无锁化
     private static final AtomicReferenceFieldUpdater<SelectionKey,Object>
         attachmentUpdater = AtomicReferenceFieldUpdater.newUpdater(
             SelectionKey.class, Object.class, "attachment"
@@ -385,6 +386,7 @@ public abstract class SelectionKey {
      *          otherwise <tt>null</tt>
      */
     public final Object attach(Object ob) {
+        // 更新attachment的值
         return attachmentUpdater.getAndSet(this, ob);
     }
 

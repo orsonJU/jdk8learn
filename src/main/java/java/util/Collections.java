@@ -1051,6 +1051,7 @@ public class Collections {
             };
         }
 
+        // IDEA 对于不能修改的集合，所有的add/remove方法都将抛出异常
         public boolean add(E e) {
             throw new UnsupportedOperationException();
         }

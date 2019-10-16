@@ -783,19 +783,23 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * waiting for a straggler task to finish.
      */
     private void interruptIdleWorkers(boolean onlyOne) {
+        // 这里是可重入锁，所以调用线程池shutdown的线程可以执行进来这个方法
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
             for (Worker w : workers) {
                 Thread t = w.thread;
+                // 这里要保证只有一个线程可以对worker线程执行interrupt操作
                 if (!t.isInterrupted() && w.tryLock()) {
                     try {
+                        // 如果worker线程没有被中断，则调用interrupt方法
                         t.interrupt();
                     } catch (SecurityException ignore) {
                     } finally {
                         w.unlock();
                     }
                 }
+                // 是否只是中断一个worker线程，如果是，则推出循环
                 if (onlyOne)
                     break;
             }
@@ -1420,11 +1424,13 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * @throws SecurityException {@inheritDoc}
      */
     public void shutdown() {
+        // 保证同一时间只有一个线程可以shutdown线程池
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
             checkShutdownAccess();
             advanceRunState(SHUTDOWN);
+            // shutdown方法的底层就是轮训调用线程池中所有线程的interrupt方法，中断线程
             interruptIdleWorkers();
             onShutdown(); // hook for ScheduledThreadPoolExecutor
         } finally {
