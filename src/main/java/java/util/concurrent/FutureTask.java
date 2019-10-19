@@ -150,6 +150,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
 
     // 取消future的任务
     public boolean cancel(boolean mayInterruptIfRunning) {
+        // 如果任务已经不是NEW状态，则不能CANCELLED
         if (!(state == NEW &&
               UNSAFE.compareAndSwapInt(this, stateOffset, NEW,
                   mayInterruptIfRunning ? INTERRUPTING : CANCELLED)))
