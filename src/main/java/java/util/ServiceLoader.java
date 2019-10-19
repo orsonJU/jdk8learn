@@ -186,6 +186,7 @@ public final class ServiceLoader<S>
     implements Iterable<S>
 {
 
+    // 固定从这个目录下面去获取对应的实现
     private static final String PREFIX = "META-INF/services/";
 
     // The class or interface representing the service being loaded
@@ -223,6 +224,7 @@ public final class ServiceLoader<S>
         service = Objects.requireNonNull(svc, "Service interface cannot be null");
         loader = (cl == null) ? ClassLoader.getSystemClassLoader() : cl;
         acc = (System.getSecurityManager() != null) ? AccessController.getContext() : null;
+        // @main method
         reload();
     }
 
@@ -252,6 +254,7 @@ public final class ServiceLoader<S>
                           List<String> names)
         throws IOException, ServiceConfigurationError
     {
+        // 获取一行配置
         String ln = r.readLine();
         if (ln == null) {
             return -1;
@@ -301,6 +304,7 @@ public final class ServiceLoader<S>
         BufferedReader r = null;
         ArrayList<String> names = new ArrayList<>();
         try {
+            // u代表对应的配置文件
             in = u.openStream();
             r = new BufferedReader(new InputStreamReader(in, "utf-8"));
             int lc = 1;
@@ -315,6 +319,7 @@ public final class ServiceLoader<S>
                 fail(service, "Error closing configuration file", y);
             }
         }
+        // 返回所有解析出来的实现类字符串名字
         return names.iterator();
     }
 
@@ -343,6 +348,7 @@ public final class ServiceLoader<S>
                 try {
                     String fullName = PREFIX + service.getName();
                     if (loader == null)
+                        // 对应的接口命名的文件
                         configs = ClassLoader.getSystemResources(fullName);
                     else
                         configs = loader.getResources(fullName);
@@ -350,10 +356,12 @@ public final class ServiceLoader<S>
                     fail(service, "Error locating configuration files", x);
                 }
             }
+
             while ((pending == null) || !pending.hasNext()) {
                 if (!configs.hasMoreElements()) {
                     return false;
                 }
+                // pending是配置文件中所有类的字符串形式名字
                 pending = parse(service, configs.nextElement());
             }
             nextName = pending.next();
@@ -367,6 +375,7 @@ public final class ServiceLoader<S>
             nextName = null;
             Class<?> c = null;
             try {
+                // idea，最底层就是调用class.forname来加载
                 c = Class.forName(cn, false, loader);
             } catch (ClassNotFoundException x) {
                 fail(service,
@@ -534,6 +543,7 @@ public final class ServiceLoader<S>
      * @return A new service loader
      */
     public static <S> ServiceLoader<S> load(Class<S> service) {
+        // mist context class loader和普通的class loader的区别是？
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         return ServiceLoader.load(service, cl);
     }
