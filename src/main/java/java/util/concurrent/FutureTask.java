@@ -158,9 +158,10 @@ public class FutureTask<V> implements RunnableFuture<V> {
         try {    // in case call to interrupt throws exception
             if (mayInterruptIfRunning) {
                 try {
+                    // runner就是当前的futuretask
                     Thread t = runner;
                     if (t != null)
-                        // 首先interrupt线程的执行
+                        // mist 当前的futuretask并没有可以被interrupt的方法，如何让callable.call方法停止运行呢？
                         t.interrupt();
                 } finally { // final state
                     UNSAFE.putOrderedInt(this, stateOffset, INTERRUPTED);
