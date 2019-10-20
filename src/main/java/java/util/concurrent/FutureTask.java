@@ -84,7 +84,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
     /** The result to return or exception to throw from get() */
     private Object outcome; // non-volatile, protected by state reads/writes
     /** The thread running the callable; CASed during run() */
-    // MIST 哪里设置了这个runner
+    // mist 哪里设置了这个runner
     private volatile Thread runner;
     /** Treiber stack of waiting threads */
     private volatile WaitNode waiters;
@@ -352,6 +352,9 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * stack.  See other classes such as Phaser and SynchronousQueue
      * for more detailed explanation.
      */
+    // idea 当外部线程调用get方法当时候，如果futuretask还没有返回值，则把调用get方法的线程放入链表中
+    // 这样设计的目的是防止多个线程同时调用个了get方法，当返回值准备好了之后，确保多有调用了get方法的线程
+    // 都可以正确释放
     static final class WaitNode {
         volatile Thread thread;
         volatile WaitNode next;
@@ -362,6 +365,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * Removes and signals all waiting threads, invokes done(), and
      * nulls out callable.
      */
+    // idea 当执行callable任务出现了异常，应该unpark所有等待当线程
     private void finishCompletion() {
         // assert state > COMPLETING;
         for (WaitNode q; (q = waiters) != null;) {
@@ -418,9 +422,15 @@ public class FutureTask<V> implements RunnableFuture<V> {
                 // 如果底层的线程还在执行，则让出CPU时间碎片
                 Thread.yield();
             else if (q == null)
-                // mist 什么是waitnode
+                // mist 什么是waitnode？
+                /*
+                    idea waitnode是一个链表，因为调用get方法当可能有多个线程，我们要确保所有调用了get方法当线程都阻塞，并且在出现异常的
+                    时候可以unpark所有的线程
+                 */
                 q = new WaitNode();
             else if (!queued)
+                // idea 这里没有使用像synchronized的关键字来保证原子性，而是使用了Unsafe对象的原子操作方法
+                // 不断把新的等待线程放入到waiters的头部？
                 queued = UNSAFE.compareAndSwapObject(this, waitersOffset,
                                                      q.next = waiters, q);
             else if (timed) {
