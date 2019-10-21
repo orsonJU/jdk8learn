@@ -58,7 +58,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * transitions to a terminal state only in methods set,
      * setException, and cancel.  During completion, state may take on
      * transient values of COMPLETING (while outcome is being set) or
-     * INTERRUPTING (only while interrupting the runner to satisfy a
+     * INTERRUPTING (only while interrupting the runner to satisfy A
      * cancel(true)). Transitions from these intermediate to final
      * states use cheaper ordered/lazy writes because values are unique
      * and cannot be further modified.
@@ -101,7 +101,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
         if (s == NORMAL)
             return (V)x;
 
-        // 大于COMPLETING的结果中，NORMAL已经在上面判断了，除外的都是exception的情况
+        // 大于COMPLETED的结果中，NORMAL已经在上面判断了，除外的都是exception的情况
         if (s >= CANCELLED)
             throw new CancellationException();
         throw new ExecutionException((Throwable)x);
@@ -183,6 +183,8 @@ public class FutureTask<V> implements RunnableFuture<V> {
         if (s <= COMPLETING)
             // 如果没有完成，则进行等待
             s = awaitDone(false, 0L);
+
+        // idea 所以是在get当时候，才会返回exception
         return report(s);
     }
 
@@ -221,6 +223,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * @param v the value
      */
     protected void set(V v) {
+        // 设置状态为completing，然后设置执行结果，最后设置状态为normal
         if (UNSAFE.compareAndSwapInt(this, stateOffset, NEW, COMPLETING)) {
             // 设置执行结果
             outcome = v;
@@ -249,7 +252,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
 
     // 执行FutureTask，调用start方法
     public void run() {
-        // 如果状态不在NEW，或者MIST，则返回
+        // 如果状态不在NEW，或者当前线程不为空，即runner != null
         if (state != NEW ||
             // 把runner设置为当前的线程 mist 为什么要专门设置这个呢？不是可以直接获取吗？
             !UNSAFE.compareAndSwapObject(this, runnerOffset,
@@ -271,6 +274,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
                     ran = false;
                     setException(ex);
                 }
+                // 当callable任务执行成功之后，设置结果
                 if (ran)
                     set(result);
             }
@@ -367,12 +371,13 @@ public class FutureTask<V> implements RunnableFuture<V> {
      */
     // idea 当执行callable任务出现了异常，应该unpark所有等待当线程
     private void finishCompletion() {
-        // assert state > COMPLETING;
+        // 释放所有调用了get方法当线程
         for (WaitNode q; (q = waiters) != null;) {
             if (UNSAFE.compareAndSwapObject(this, waitersOffset, q, null)) {
                 for (;;) {
                     Thread t = q.thread;
                     if (t != null) {
+                        // 方便GC回收
                         q.thread = null;
                         // 唤醒目标线程
                         LockSupport.unpark(t);
@@ -387,6 +392,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
             }
         }
 
+        // idea hook
         done();
 
         callable = null;        // to reduce footprint
@@ -412,7 +418,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
             }
 
             int s = state;
-            // 其中一种情况便是NORMAL
+            // 所有state大于completing当结果，要不就是执行完毕，结果已经产生，要不就是被取消或者中断了
             if (s > COMPLETING) {
                 if (q != null)
                     q.thread = null;
