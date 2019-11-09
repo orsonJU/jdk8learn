@@ -69,6 +69,7 @@ public class FutureTask<V> implements RunnableFuture<V> {
      * NEW -> CANCELLED
      * NEW -> INTERRUPTING -> INTERRUPTED
      */
+    // idea 首先，futuretask是一次性用品，不存在状态回滚
     private volatile int state;
     private static final int NEW          = 0;
     private static final int COMPLETING   = 1;

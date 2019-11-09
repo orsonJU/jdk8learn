@@ -160,6 +160,7 @@ public class ThreadLocal<T> {
         Thread t = Thread.currentThread();
         ThreadLocalMap map = getMap(t);
         if (map != null) {
+            // 获取hashmap的所有entries
             ThreadLocalMap.Entry e = map.getEntry(this);
             if (e != null) {
                 @SuppressWarnings("unchecked")
@@ -295,6 +296,7 @@ public class ThreadLocal<T> {
      * used, stale entries are guaranteed to be removed only when
      * the table starts running out of space.
      */
+    // idea ThreadLocalMap底层也是一个hashmap
     static class ThreadLocalMap {
 
         /**
@@ -305,6 +307,7 @@ public class ThreadLocal<T> {
          * entry can be expunged from table.  Such entries are referred to
          * as "stale entries" in the code that follows.
          */
+        // mist threadlocalmap中的entry是一个若引用
         static class Entry extends WeakReference<ThreadLocal<?>> {
             /** The value associated with this ThreadLocal. */
             Object value;
@@ -324,6 +327,8 @@ public class ThreadLocal<T> {
          * The table, resized as necessary.
          * table.length MUST always be a power of two.
          */
+        // idea threadlocalmap的底层并没有使用类似hashmap的数据结构，而是使用了一个数组
+        // 如果hashmap的底层也是封装的数组
         private Entry[] table;
 
         /**
