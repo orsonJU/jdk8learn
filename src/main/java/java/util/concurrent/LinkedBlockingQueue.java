@@ -171,6 +171,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         final ReentrantLock takeLock = this.takeLock;
         takeLock.lock();
         try {
+            // idea 通知其他想要获取元素的线程，存在可以获取的元素
             notEmpty.signal();
         } finally {
             takeLock.unlock();
@@ -246,6 +247,8 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
      * Creates a {@code LinkedBlockingQueue} with a capacity of
      * {@link Integer#MAX_VALUE}.
      */
+    // trap 默认使用的是Integer.MAX_VALUE，会占用大量的内存空间
+    // idea 我们应该根据业务的需求，尽可能指定底层数组的大小
     public LinkedBlockingQueue() {
         this(Integer.MAX_VALUE);
     }
@@ -259,6 +262,7 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
      */
     public LinkedBlockingQueue(int capacity) {
         if (capacity <= 0) throw new IllegalArgumentException();
+        // 这里巧妙地处理了传递Integer.MAX_VALUE的问题，使用链表的方法来保存现有的元素，而不是一开始就创建好
         this.capacity = capacity;
         last = head = new Node<E>(null);
     }
@@ -410,22 +414,26 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
     public boolean offer(E e) {
         if (e == null) throw new NullPointerException();
         final AtomicInteger count = this.count;
+        // 如果已经等于最大容量值，则返回
         if (count.get() == capacity)
             return false;
         int c = -1;
         Node<E> node = new Node<E>(e);
+        // idea 同时只有一个线程可以写
         final ReentrantLock putLock = this.putLock;
         putLock.lock();
         try {
             if (count.get() < capacity) {
                 enqueue(node);
                 c = count.getAndIncrement();
+                // idea 通知其他想要放入元素的线程，可以放入更多元素
                 if (c + 1 < capacity)
                     notFull.signal();
             }
         } finally {
             putLock.unlock();
         }
+        // 放入成功的化，c==0
         if (c == 0)
             signalNotEmpty();
         return c >= 0;
@@ -438,16 +446,20 @@ public class LinkedBlockingQueue<E> extends AbstractQueue<E>
         final ReentrantLock takeLock = this.takeLock;
         takeLock.lockInterruptibly();
         try {
+            // 发现没有元素可以获取，进行等待
             while (count.get() == 0) {
                 notEmpty.await();
             }
+            // idea 当调用notEmpty.await()的线程被唤醒后，则获取一个元素
             x = dequeue();
             c = count.getAndDecrement();
             if (c > 1)
+                // 随机通知另一个线程，有更多的元素可以获取，这里是非公平锁
                 notEmpty.signal();
         } finally {
             takeLock.unlock();
         }
+        // 通知其他想要放入元素的线程，可以放入更多的元素
         if (c == capacity)
             signalNotFull();
         return x;
