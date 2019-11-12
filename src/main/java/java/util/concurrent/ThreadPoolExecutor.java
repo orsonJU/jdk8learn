@@ -1228,6 +1228,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                               long keepAliveTime,
                               TimeUnit unit,
                               BlockingQueue<Runnable> workQueue) {
+        // idea 默认只用Abort的拒绝策略
         this(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue,
              Executors.defaultThreadFactory(), defaultHandler);
     }
@@ -1383,7 +1384,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * the pool shut down since entry into this method. So we
          * recheck state and if necessary roll back the enqueuing if
          * stopped, or start a new thread if there are none.
-         *
+         * idea 下面这句话验证了只有当队列放不下的时候，才会去新增一个新的工作线程
          * 3. If we cannot queue task, then we try to add a new
          * thread.  If it fails, we know we are shut down or saturated
          * and so reject the task.

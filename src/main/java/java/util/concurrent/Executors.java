@@ -68,6 +68,9 @@ import sun.security.util.SecurityConstants;
  * @since 1.5
  * @author Doug Lea
  */
+
+// question 1：是否只有队列的任务排满了，才会增加线程直接到最大上限
+    // idea 当且仅当线程的队列塞满了，才会增加非核心线程池的数量
 public class Executors {
 
     /**
@@ -86,9 +89,12 @@ public class Executors {
      * @throws IllegalArgumentException if {@code nThreads <= 0}
      */
     public static ExecutorService newFixedThreadPool(int nThreads) {
+        // idea 使用的是无界限blocking queue
+        // idea 设置核心线程数量 和 最大线程数量 一样
         return new ThreadPoolExecutor(nThreads, nThreads,
                                       0L, TimeUnit.MILLISECONDS,
                                       new LinkedBlockingQueue<Runnable>());
+
     }
 
     /**
@@ -593,6 +599,7 @@ public class Executors {
     /**
      * The default thread factory
      */
+    // idea 当实现一个需要多个线程工作的功能，最好创建自己的线程工厂
     static class DefaultThreadFactory implements ThreadFactory {
         private static final AtomicInteger poolNumber = new AtomicInteger(1);
         private final ThreadGroup group;
