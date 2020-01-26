@@ -163,6 +163,7 @@ public class Semaphore implements java.io.Serializable {
      * to represent permits. Subclassed into fair and nonfair
      * versions.
      */
+    // semaphore也是基于AQS实现的
     abstract static class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 1192457210091910933L;
 
@@ -177,6 +178,7 @@ public class Semaphore implements java.io.Serializable {
         final int nonfairTryAcquireShared(int acquires) {
             for (;;) {
                 int available = getState();
+                // 计算剩下的令牌数量
                 int remaining = available - acquires;
                 if (remaining < 0 ||
                     compareAndSetState(available, remaining))

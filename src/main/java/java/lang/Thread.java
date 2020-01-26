@@ -179,6 +179,7 @@ class Thread implements Runnable {
 
     /* ThreadLocal values pertaining to this thread. This map is maintained
      * by the ThreadLocal class. */
+    // idea 每个Thread实例都持有ThreadLocalMap的实现
     ThreadLocal.ThreadLocalMap threadLocals = null;
 
     /*

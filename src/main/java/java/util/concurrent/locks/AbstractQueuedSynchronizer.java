@@ -1014,6 +1014,7 @@ public abstract class AbstractQueuedSynchronizer
                         failed = false;
                         return;
                     }
+                    // idea 如果共享锁 r < 0，则不断地自旋获取
                 }
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     parkAndCheckInterrupt())
@@ -1336,6 +1337,7 @@ public abstract class AbstractQueuedSynchronizer
      *        and can represent anything you like.
      */
     public final void acquireShared(int arg) {
+        // 如果共享锁的数量少于0，不断尝试获取？
         if (tryAcquireShared(arg) < 0)
             doAcquireShared(arg);
     }

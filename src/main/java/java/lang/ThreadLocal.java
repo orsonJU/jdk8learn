@@ -168,6 +168,7 @@ public class ThreadLocal<T> {
                 return result;
             }
         }
+        // idea 子类可以覆盖ThreadLocal，实现自己的初始化方法
         return setInitialValue();
     }
 
@@ -184,6 +185,7 @@ public class ThreadLocal<T> {
         if (map != null)
             map.set(this, value);
         else
+            // idea 创建thread local map对象
             createMap(t, value);
         return value;
     }
@@ -231,6 +233,7 @@ public class ThreadLocal<T> {
      * @return the map
      */
     ThreadLocalMap getMap(Thread t) {
+        // idea 原来getMap返回的是每个Thread实例自己版本的一个叫做threadLocals的成员变量
         return t.threadLocals;
     }
 
@@ -242,6 +245,7 @@ public class ThreadLocal<T> {
      * @param firstValue value for the initial entry of the map
      */
     void createMap(Thread t, T firstValue) {
+        // t.threadLocals是默认级别的所以非当前package下，其他人无办法通过Thread.currentThread().threadLocals来获取
         t.threadLocals = new ThreadLocalMap(this, firstValue);
     }
 
@@ -369,6 +373,7 @@ public class ThreadLocal<T> {
          */
         ThreadLocalMap(ThreadLocal<?> firstKey, Object firstValue) {
             table = new Entry[INITIAL_CAPACITY];
+            // idea 这里就很想hashmap的实现了，根据hashcode来计算存放value的数组下标
             int i = firstKey.threadLocalHashCode & (INITIAL_CAPACITY - 1);
             table[i] = new Entry(firstKey, firstValue);
             size = 1;
@@ -467,6 +472,8 @@ public class ThreadLocal<T> {
             int len = tab.length;
             int i = key.threadLocalHashCode & (len-1);
 
+            // idea ThreadLocal map并不是像JDK的hashmap一样使用数组+链表，而是使用查找发，如果计算的hashcode对应的下标上有元素，则增加下标直到找到空的数组位置，然后放入
+            // idea 所以下面的方法中也需要判定当且仅当k是对应的threadloal才能赋值
             for (Entry e = tab[i];
                  e != null;
                  e = tab[i = nextIndex(i, len)]) {

@@ -777,6 +777,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * The next table to use; non-null only while resizing.
      */
+    // idea 因为concurrenthashmap支持并发扩容，所以当然就需要将新的数据提升为一个成员变量，加了volatile保证可见性
     private transient volatile Node<K,V>[] nextTable;
 
     /**
@@ -942,6 +943,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 if ((ek = e.key) == key || (ek != null && key.equals(ek)))
                     return e.val;
             }
+            
+            // mist 为什么会有负数的hash值？
+            // idea -1代表正在扩容，-2代表是一个TreeBin
+            // mist 为什负数就代表是红黑树？有可能是-1啊？ 
+            //  <-- 因为扩容的时候，类似于copy on write，所以扩容未完成前，都可能通过get方法获取现有的元素，所以这里不管是-1还是-2，都交给节点的具体类型的实现的find方法来查找
             else if (eh < 0)
                 return (p = e.find(h, key)) != null ? p.val : null;
             while ((e = e.next) != null) {
@@ -1029,6 +1035,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             }
             // 如果当前bin中的第一个元素的hash是-1
             else if ((fh = f.hash) == MOVED)
+                // mist concurrent hashmap 支持多个线程同时协助扩容
                 tab = helpTransfer(tab, f);
             else {
                 // 定位到bin，但是bin不为空
