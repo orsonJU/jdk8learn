@@ -71,6 +71,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
     implements BlockingQueue<E> {
 
     private final transient ReentrantLock lock = new ReentrantLock();
+    // mist 果然实现了一个小顶堆
     private final PriorityQueue<E> q = new PriorityQueue<E>();
 
     /**
@@ -210,6 +211,8 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
                 if (first == null)
                     available.await();
                 else {
+                    // idea delay的原理就是用户通过实现getDelay方法，返回还需要等待的剩余时长
+                    // 那么要实现第一个元素永远是最快过期的，应该需要实现小顶堆？
                     long delay = first.getDelay(NANOSECONDS);
                     if (delay <= 0)
                         return q.poll();
