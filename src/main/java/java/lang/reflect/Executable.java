@@ -40,6 +40,7 @@ import sun.reflect.generics.repository.ConstructorRepository;
  *
  * @since 1.8
  */
+// idea method和constructor是可以执行的，这里抽象出一个Executable对象
 public abstract class Executable extends AccessibleObject
     implements Member, GenericDeclaration {
     /*

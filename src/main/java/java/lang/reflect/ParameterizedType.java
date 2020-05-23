@@ -62,6 +62,7 @@ public interface ParameterizedType extends Type {
      *     be instantiated for any reason
      * @since 1.5
      */
+    // 获取<>括号里面的类型，如Map<String, String>将会获取到[String, String]
     Type[] getActualTypeArguments();
 
     /**
@@ -72,6 +73,7 @@ public interface ParameterizedType extends Type {
      *     that declared this type
      * @since 1.5
      */
+    // 获取<>外的类型，如List<String>将会获取到java.util.List
     Type getRawType();
 
     /**
@@ -91,5 +93,7 @@ public interface ParameterizedType extends Type {
      *     for any reason
      * @since 1.5
      */
+    // 获取内部类的父类，如List<String>将会获取到null
+    // 而Map.Entry<String, String>将会获取到Map
     Type getOwnerType();
 }
